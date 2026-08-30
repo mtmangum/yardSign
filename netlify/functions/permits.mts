@@ -40,21 +40,29 @@ export default async (request: Request) => {
   const since = new Date()
   since.setDate(since.getDate() - days)
 
+  const rpcArgs = {
+    p_lat: lat,
+    p_lng: lng,
+    p_radius_m: radius,
+    p_since: since.toISOString().slice(0, 10),
+    p_work_classes: workClasses.length ? workClasses : null,
+    p_min_valuation: minValuation,
+  }
+
   try {
-    const response = await supabaseRequest('rpc/permits_near', {
-      method: 'POST',
-      body: JSON.stringify({
-        p_lat: lat,
-        p_lng: lng,
-        p_radius_m: radius,
-        p_since: since.toISOString().slice(0, 10),
-        p_work_classes: workClasses.length ? workClasses : null,
-        p_min_valuation: minValuation,
-        p_limit: limit,
+    const [rowsResponse, countResponse] = await Promise.all([
+      supabaseRequest('rpc/permits_near', {
+        method: 'POST',
+        body: JSON.stringify({ ...rpcArgs, p_limit: limit }),
       }),
-    })
-    const permits = await response.json()
-    return new Response(JSON.stringify({ permits, center: { lat, lng }, radius, days }), {
+      supabaseRequest('rpc/permits_near_count', {
+        method: 'POST',
+        body: JSON.stringify(rpcArgs),
+      }),
+    ])
+    const permits = await rowsResponse.json()
+    const total = await countResponse.json()
+    return new Response(JSON.stringify({ permits, total, center: { lat, lng }, radius, days }), {
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'public, max-age=300, stale-while-revalidate=3600',

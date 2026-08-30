@@ -35,7 +35,7 @@ export default function App() {
     () => (location ? { lat: location.lat, lng: location.lng, radius, days } : null),
     [location, radius, days],
   )
-  const { permits, loading, error } = usePermits(query)
+  const { permits, total, loading, error } = usePermits(query)
 
   const openPermit = (permit: Permit) => {
     if (permit.source_url) window.open(permit.source_url, '_blank', 'noreferrer')
@@ -97,6 +97,7 @@ export default function App() {
         <div className="results">
           <PermitList
             permits={permits}
+            total={total}
             loading={loading}
             error={error}
             hasLocation={Boolean(location)}

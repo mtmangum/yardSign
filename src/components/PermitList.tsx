@@ -88,6 +88,7 @@ const formatDate = (value: string | null) =>
 
 interface PermitListProps {
   permits: Permit[]
+  total: number
   loading: boolean
   error: string | null
   hasLocation: boolean
@@ -96,7 +97,9 @@ interface PermitListProps {
   onSelect: (permit: Permit) => void
 }
 
-export function PermitList({ permits, loading, error, hasLocation, activeId, onHover, onSelect }: PermitListProps) {
+const n = (value: number) => value.toLocaleString('en-US')
+
+export function PermitList({ permits, total, loading, error, hasLocation, activeId, onHover, onSelect }: PermitListProps) {
   if (!hasLocation) {
     return (
       <p className="results__status">
@@ -114,7 +117,9 @@ export function PermitList({ permits, loading, error, hasLocation, activeId, onH
   return (
     <>
       <div className="results__count">
-        {permits.length} permit{permits.length === 1 ? '' : 's'}
+        {total > permits.length
+          ? `${n(permits.length)} of ${n(total)} · closest first`
+          : `${n(total)} permit${total === 1 ? '' : 's'}`}
       </div>
       {permits.map((permit) => {
         const valuation = formatValuation(permit.total_job_valuation)

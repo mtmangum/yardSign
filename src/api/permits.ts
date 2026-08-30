@@ -32,7 +32,13 @@ export interface AddressMatch {
   lng: number
 }
 
-export async function fetchPermits(query: PermitQuery, signal?: AbortSignal): Promise<Permit[]> {
+export interface PermitResult {
+  permits: Permit[]
+  /** Total in the radius before the marker cap - so the UI can say "500 of N". */
+  total: number
+}
+
+export async function fetchPermits(query: PermitQuery, signal?: AbortSignal): Promise<PermitResult> {
   const params = new URLSearchParams({
     lat: String(query.lat),
     lng: String(query.lng),
@@ -46,8 +52,8 @@ export async function fetchPermits(query: PermitQuery, signal?: AbortSignal): Pr
     const body = await response.json().catch(() => ({}))
     throw new Error(body.error ?? `Permit lookup failed (${response.status})`)
   }
-  const payload = (await response.json()) as { permits: Permit[] }
-  return payload.permits
+  const payload = (await response.json()) as { permits: Permit[]; total?: number }
+  return { permits: payload.permits, total: payload.total ?? payload.permits.length }
 }
 
 export async function geocodeAddress(query: string, signal?: AbortSignal): Promise<AddressMatch[]> {
