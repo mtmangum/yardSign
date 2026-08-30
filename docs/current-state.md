@@ -31,10 +31,12 @@ dashboard (Settings > API Keys). `_shared/supabase.mts` handles both formats
 
 ## What this is
 
-An address-centered view of Austin development activity. Enter an address, pick
-a radius and a time window, and see the construction permits issued nearby on a
-map and in a list. The eventual hook is subscriptions: an email when something
-new is filed inside your radius. That is not built yet.
+An address-centered view of Austin development activity. It opens on downtown
+Austin with permits already on the map (no blank slate); from there you search
+your own address or hit the locate button, pick a radius and a time window, and
+see the construction permits issued nearby on a map and in a list. The eventual
+hook is subscriptions: an email when something new is filed inside your radius.
+That is not built yet.
 
 ## Product decisions already made
 
