@@ -81,8 +81,9 @@ Socrata 3syk-w9eu ──► import-austin-permits (daily 07:00 UTC, incremental)
 ```
 
 The browser opens on downtown Austin (`App.tsx` `DEFAULT_LOCATION`) so the map
-is populated on first paint; the locate button (`PermitMap.tsx`) recentres on
-`navigator.geolocation`.
+is populated on first paint. A locate crosshair — inside the address input and
+again on the map, both driven by `useGeolocate` — recentres on
+`navigator.geolocation` (Austin-bounds-checked before the request).
 
 ## The data constraint that shapes everything
 
@@ -244,10 +245,10 @@ near-identical desaturated equivalent.
 Done 2026-08-30, after deploy: **restyle applied** (`a966b19`); **`permitKind()`
 keys demolition on `permit_class`** (migration `202608300002`, `acc4543`);
 **Stadia key set, live map working**; **opens on downtown Austin with data**
-(`c8e16b6`); **locate button** in the address row and on the map, sharing
-`useGeolocate` (`9c66c6f`); **count bar shows "N of M · closest first"** when the
-500-marker cap bites (migration `202608300003`, `f62d813`). The last two are
-committed locally, not pushed.
+(`c8e16b6`); **locate crosshair** inside the address input and on the map,
+sharing `useGeolocate` (`681779c`); **count bar shows "N of M · closest first"**
+when the 500-marker cap bites (migration `202608300003`, `f62d813`). The last two
+are committed locally, not pushed.
 
 ## Watch after the laptop closes
 
