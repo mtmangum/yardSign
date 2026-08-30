@@ -1,8 +1,9 @@
 # Yard Sign: current state
 
-Last updated: 2026-08-30. Backend is provisioned and loaded with real data;
-nothing is deployed to production yet and the front end has not been exercised
-against live data end to end.
+Last updated: 2026-08-30. Backend is provisioned, loaded, and fully geocoded.
+The API is verified end to end against the live database (`/api/geocode-address`
+and `/api/permits` return real results through `netlify dev`). Not deployed to
+production; the map has not been eyeballed in a browser against live data.
 
 ## Infrastructure (provisioned 2026-08-30)
 
@@ -16,6 +17,8 @@ All under Matt Mangum's personal accounts.
 | GitHub | `github.com/mtmangum/yardSign` (public), `main` |
 | Migration state | `202608300001_initial_schema.sql` applied; `supabase migration list` clean |
 | `permits` rows | 84,521 imported (18-month window, 2026-08-30) |
+| Geocoded | 66,734 `matched` (79%), 17,787 `no_match` (21%), 0 `pending`, 0 `failed` |
+| Basemap | Stadia Maps "Alidade Smooth" (was CARTO Voyager — CARTO now watermarks keyless tiles) |
 | Domain | `yardsign.city` still not registered |
 
 **`.env` uses the legacy `service_role` JWT, not an `sb_secret_` key.** The
@@ -45,20 +48,24 @@ new is filed inside your radius. That is not built yet.
 
 ## Architecture
 
-React 19 + Vite + TypeScript on the front end, Leaflet for the map, Supabase
-(Postgres) for storage, Netlify Functions for everything server side. The
-browser never holds a Supabase key; all reads go through `/api/permits`.
+React 19 + Vite + TypeScript on the front end, Leaflet for the map (Stadia Maps
+basemap tiles), Supabase (Postgres) for storage, Netlify Functions for
+everything server side. The browser never holds a Supabase key; all reads go
+through `/api/permits`.
 
 ```
 Socrata 3syk-w9eu ──► import-austin-permits (daily 07:00 UTC)
                           │ upsert on (city_code, permit_number)
                           ▼
-                      permits table  ──► permits_needing_geocode (view)
-                          │                    │
-                          │              geocode-census-background
-                          │                    │ fills latitude/longitude
-                          ▼                    ▼
+                      permits table
+                          │   │
+                          │   └─ backfill: geocode-census-batch-background
+                          │      steady state: geocode-census-background
+                          │            │ fills latitude/longitude
+                          ▼            ▼
                       permits_near() ──► /api/permits ──► browser
+
+           /api/geocode-address ──► Census one-line geocoder (search box)
 ```
 
 ## The data constraint that shapes everything
@@ -71,17 +78,16 @@ Every single row must be geocoded before it can appear in a radius search, which
 means the geocode backfill is on the critical path to the product working at all,
 not a nice-to-have enrichment pass.
 
-**Volume:** 84,565 permits issued in the trailing 18 months (measured
-2026-08-30 against the live API). At the current one-address-at-a-time pace of
-roughly 120ms of throttle plus a geocode round trip and a PATCH, a full backfill
-is on the order of 7 to 10 hours of wall clock, spread across paged calls.
+**Volume:** ~84,540 permits issued in the trailing 18 months (measured
+2026-08-30), 84,521 after in-batch dedup. The initial backfill is done (see
+below); steady state is a few hundred new permits a day.
 
 `geocode_status` exists so that `no_match` rows (common for new subdivisions the
 Census file has not caught up with) leave the queue permanently instead of being
 retried every pass. `failed` marks transient errors and can be reset to
 `pending` to retry.
 
-### The batch geocoder (built 2026-08-30)
+### The batch geocoder (built and run 2026-08-30)
 
 `geocode-census-batch-background.mts` uses the Census **address batch endpoint**
 (a CSV upload, coordinates for the whole file in one request) instead of the
@@ -90,17 +96,25 @@ one-at-a-time crawl. It:
 - Queries `permits` directly on the partial `geocode_status = 'pending'` index,
   **not** the `permits_needing_geocode` view. The view's `row_number()` window
   function runs over every pending row on each call and hits the Postgres
-  statement timeout at backfill scale (~85k pending). No cursor is needed - a
-  geocoded row flips out of `'pending'` and off the queue.
-- Is effectively capped at 1,000 rows per pass by PostgREST's `max-rows`, so the
-  full backfill is ~85 passes of ~10s each (~15 min), not 7-10 hours.
+  statement timeout at backfill scale. It also uses **no `ORDER BY`** - sorting
+  the ~70k filtered rows by `issue_date` was itself intermittently tripping the
+  statement timeout, and any pending row is as good as any other to geocode. No
+  cursor is needed - a geocoded row flips out of `'pending'` and off the queue.
+- Is effectively capped at 1,000 rows per pass by PostgREST's `max-rows`.
 - Writes every fetched row a terminal status via one merge-duplicates upsert per
-  500 (`matched` with lat/long, or `no_match` / `failed`). Blank-address rows go
-  straight to `no_match`.
+  500, all records the same shape (`latitude`/`longitude` always present, null
+  for non-matches - PostgREST rejects a mixed-shape bulk upsert). Blank-address
+  rows go straight to `no_match`.
 
-Observed match rate on the first pass: ~78% `matched`, ~22% `no_match`, rare
-`tie` (treated as `no_match`). The 22% miss is the new-construction gap and the
-main argument for the TCAD parcel join later.
+**Backfill result:** 84,521 rows in ~130 passes over ~14 min of wall clock
+(across two runs - the first died on the ORDER BY timeout, the runner is
+resumable and idempotent). Final: **66,734 `matched` (79%), 17,787 `no_match`
+(21%)**, 0 `failed`. The 21% miss is the new-construction gap and the main
+argument for the TCAD parcel join later.
+
+Run it again any time with `netlify/functions` on PATH via a small Node loop
+(the Netlify Lambda emulator caps invokes at 30s; the real run was
+`node --env-file=.env` calling the exported `runBatch()`).
 
 The one-at-a-time `geocode-census-background` function stays as-is for the small
 daily incremental.
@@ -135,17 +149,28 @@ Deliberately not reused: the scoring engine, the canonical-duplicate machinery,
 and the entire UI. Yard Sign has its own visual identity built around the
 physical notice sign.
 
+## Basemap
+
+`PermitMap.tsx` loads Stadia Maps "Alidade Smooth" raster tiles. Keyless from
+`localhost`; **production needs a free, domain-restricted Stadia API key** in
+`VITE_STADIA_API_KEY` (the tile URL appends `?api_key=` when it is set - see
+`src/vite-env.d.ts`). CARTO Voyager was the original pick and was dropped once
+CARTO began stamping "API KEY REQUIRED" on keyless tiles. Alidade Smooth is the
+near-identical desaturated equivalent.
+
 ## Known gaps
 
 - No alerts, subscriptions, or email. That is the retention mechanic and the
   reason this beats a one-off lookup, so it should not wait long.
 - **Not deployed.** The Netlify site exists but nothing has been pushed to it;
-  no env vars set on Netlify; the daily import is not scheduled anywhere real.
-- The front end has never rendered against live data. `/api/permits` is verified
-  by curl only.
-- Domain not registered.
-- ~22% of permits are `no_match` from the Census geocoder and will never appear
-  on the map until the TCAD parcel join exists.
+  no env vars set on Netlify (`SUPABASE_URL`, `SUPABASE_SECRET_KEY`,
+  `IMPORT_SECRET`, `VITE_STADIA_API_KEY`); the daily import is not scheduled
+  anywhere real.
+- The front end has been exercised only through the API (`curl` against
+  `netlify dev`). Nobody has watched the map paint markers in a browser.
+- Domain not registered; no Stadia API key yet.
+- 21% of permits are `no_match` from the Census geocoder and will not appear on
+  the map until the TCAD parcel join exists.
 - `permit_class` (e.g. `R- 645 Demolition One Family Homes`) is stored on the
   table but not returned by `permits_near()`, so `permitKind()` only sees
   `work_class`. Adding `permit_class` to the SQL function's return would let the
@@ -168,9 +193,11 @@ physical notice sign.
 
 ## Next steps, in order
 
-1. Finish the geocode backfill, then open the app locally and confirm markers
-   render for a real address.
-2. Set the Supabase env vars on Netlify, wire the repo to the site, and do a
-   first deploy. Confirm the scheduled import runs there.
-3. Register `yardsign.city` and point it at the site.
-4. Ship the radius search UI polish, then add subscriptions.
+1. Open the app in a browser against `netlify dev` and confirm the map paints
+   markers for a real address (backfill is done; the API works).
+2. Register a free Stadia Maps API key, put it in `.env` as
+   `VITE_STADIA_API_KEY`, restrict it to `localhost` + `yardsign.city`.
+3. Set the four env vars on Netlify, connect the GitHub repo to the site, and do
+   a first deploy. Confirm the scheduled `import-austin-permits` runs there.
+4. Register `yardsign.city` and point it at the site.
+5. Ship the radius search UI polish, then add subscriptions.

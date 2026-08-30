@@ -97,12 +97,15 @@ export function parseBatchResponse(text: string): Map<string, BatchResult> {
 // Query `permits` directly rather than the permits_needing_geocode view: the
 // view's row_number() window function runs over every pending row on each call
 // and times out at backfill scale. This hits the partial index on
-// geocode_status = 'pending' instead. No cursor is needed - a geocoded row
-// flips out of 'pending' and off the end of this queue.
+// geocode_status = 'pending' instead.
+//
+// No ORDER BY: any pending row is as good as any other to geocode, and sorting
+// ~70k filtered rows by issue_date on each call was itself intermittently
+// tripping the Postgres statement timeout. No cursor is needed either - a
+// geocoded row flips out of 'pending' and off the end of this queue.
 async function fetchCandidates(limit: number): Promise<GeocodeCandidate[]> {
   const response = await supabaseRequest(
-    `permits?select=id,permit_number,address,zip_code&geocode_status=eq.pending` +
-      `&order=issue_date.desc.nullslast&limit=${limit}`,
+    `permits?select=id,permit_number,address,zip_code&geocode_status=eq.pending&limit=${limit}`,
   )
   return (await response.json()) as GeocodeCandidate[]
 }

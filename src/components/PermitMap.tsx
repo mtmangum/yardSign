@@ -37,9 +37,18 @@ export function PermitMap({ center, radius, permits, activeId, onHover }: Permit
   return (
     <div className="app__map">
       <MapContainer center={AUSTIN_CENTER} zoom={12} scrollWheelZoom style={{ height: '100%' }}>
+        {/*
+          Stadia Maps "Alidade Smooth": a desaturated basemap so the permit
+          markers carry the colour. Keyless from localhost; production needs a
+          free, domain-restricted key appended as `?api_key=...` (set it in
+          VITE_STADIA_API_KEY and interpolate here). CARTO's Voyager tiles were
+          dropped when CARTO started watermarking keyless requests.
+        */}
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url={`https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png${
+            import.meta.env.VITE_STADIA_API_KEY ? `?api_key=${import.meta.env.VITE_STADIA_API_KEY}` : ''
+          }`}
         />
 
         {center && (

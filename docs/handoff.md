@@ -3,6 +3,13 @@
 Written 2026-08-30, at the end of the scaffolding session, for picking the
 project up in Claude in VS Code.
 
+> **Update, later on 2026-08-30:** most of this file's "not yet true" list is
+> now done - Supabase project provisioned, migration applied, 84,521 permits
+> imported, Netlify site created, geocode backfill run via a new batch geocoder.
+> `docs/current-state.md` is the current source of truth; the sections below are
+> kept for the decisions and landmines, which still hold. Still outstanding: no
+> production deploy, front end unproven against live data, domain unregistered.
+
 Read `docs/current-state.md` first for the architecture and the data
 constraints. This file covers only what a new session needs to know to start
 working, and what is not yet true.
@@ -11,7 +18,7 @@ working, and what is not yet true.
 
 The scaffold is written and the front end compiles, but **nothing has been run
 against a real database and nothing is deployed**. No Supabase project, no
-Netlify site, no data, no domain.
+Netlify site, no data, no domain. *(Superseded - see the update note above.)*
 
 ## Where things stand, honestly
 

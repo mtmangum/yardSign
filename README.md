@@ -8,9 +8,9 @@ that notice, for every property within a radius you choose.
 
 ## Stack
 
-React 19 + Vite + TypeScript, Leaflet for the map, Supabase for storage, and
-Netlify Functions for the scheduled import, geocoding, and read API. Same shape
-as ScoreScout, so the operational habits carry over.
+React 19 + Vite + TypeScript, Leaflet for the map (Stadia Maps basemap tiles),
+Supabase for storage, and Netlify Functions for the scheduled import, geocoding,
+and read API. Same shape as ScoreScout, so the operational habits carry over.
 
 ## Data
 
@@ -31,7 +31,12 @@ cp .env.example .env       # fill in Supabase URL, secret key, IMPORT_SECRET
 netlify dev
 ```
 
-Apply the schema with the Supabase CLI:
+`.env` currently holds the Supabase **legacy `service_role` JWT** — the
+new-format `sb_secret_` keys 401 on this project until enabled in the dashboard.
+`VITE_STADIA_API_KEY` is optional locally (Stadia serves keyless from
+`localhost`) and required in production.
+
+Apply the schema with the Supabase CLI (already applied to `yardsign-production`):
 
 ```bash
 supabase db push
@@ -42,18 +47,29 @@ supabase db push
 | Function | Trigger | Job |
 | --- | --- | --- |
 | `import-austin-permits` | daily, 07:00 UTC | Pull the last `IMPORT_WINDOW_MONTHS` of issued permits and upsert on `(city_code, permit_number)` |
-| `geocode-census-background` | manual, `GET /api/geocode-census` | Walk the `permits_needing_geocode` queue, fill lat/long, mark `matched` / `no_match` / `failed` |
+| `geocode-census-batch-background` | manual, `GET /api/geocode-census-batch` | Bulk-geocode via the Census address-batch endpoint (CSV upload). Used for the initial backfill — ~85k rows in minutes |
+| `geocode-census-background` | manual, `GET /api/geocode-census` | One-at-a-time geocode for the small daily incremental |
 | `permits` | `GET /api/permits` | Radius search via the `permits_near()` SQL function |
 | `geocode-address` | `GET /api/geocode-address` | Address autocomplete for the search box |
 
-Backfill geocoding in pages, using the returned cursor:
+The initial backfill is done (66,734 of 84,521 matched, 2026-08-30). To
+re-run it — the Netlify Lambda emulator caps invokes at 30s, so drive the
+exported `runBatch()` from Node instead:
 
 ```bash
-curl -H "Authorization: Bearer $IMPORT_SECRET" \
-  "http://localhost:8888/api/geocode-census?limit=200&after=0"
+node --env-file=.env -e "
+  import('./netlify/functions/geocode-census-batch-background.mts').then(async m => {
+    let r; do { r = await m.runBatch(1000); console.log(r) } while (!r.done)
+  })"
 ```
+
+## Status
+
+Backend provisioned (`yardsign-production` on Supabase, `yardsign-523` on
+Netlify), 84,521 permits imported and geocoded, API verified through
+`netlify dev`. Not deployed; map not yet eyeballed in a browser.
 
 ## Not built yet
 
-Alerts and subscriptions, site plan cases, zoning cases, and the TCAD parcel
-join. See `docs/current-state.md`.
+Production deploy, alerts and subscriptions, site plan cases, zoning cases, and
+the TCAD parcel join. See `docs/current-state.md`.
