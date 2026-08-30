@@ -1,6 +1,27 @@
 # Yard Sign: current state
 
-Last updated: 2026-08-30. Scaffold stage. Nothing is deployed yet.
+Last updated: 2026-08-30. Backend is provisioned and loaded with real data;
+nothing is deployed to production yet and the front end has not been exercised
+against live data end to end.
+
+## Infrastructure (provisioned 2026-08-30)
+
+All under Matt Mangum's personal accounts.
+
+| Resource | Value |
+| --- | --- |
+| Supabase project | `yardsign-production`, ref `ohdzlznzyrvctxogbhch`, region `ca-central-1` |
+| Supabase dashboard | https://supabase.com/dashboard/project/ohdzlznzyrvctxogbhch |
+| Netlify site | `yardsign-523` (`yardsign` / `yardsign-city` subdomains were taken), id `55c34cfb-0863-4a24-bb00-5bebd65bf338` |
+| GitHub | `github.com/mtmangum/yardSign` (public), `main` |
+| Migration state | `202608300001_initial_schema.sql` applied; `supabase migration list` clean |
+| `permits` rows | 84,521 imported (18-month window, 2026-08-30) |
+| Domain | `yardsign.city` still not registered |
+
+**`.env` uses the legacy `service_role` JWT, not an `sb_secret_` key.** The
+new-format API keys return 401 on this project until they are enabled in the
+dashboard (Settings > API Keys). `_shared/supabase.mts` handles both formats
+(Bearer header for JWTs, bare `apikey` for `sb_secret_`).
 
 ## What this is
 
@@ -55,18 +76,34 @@ not a nice-to-have enrichment pass.
 roughly 120ms of throttle plus a geocode round trip and a PATCH, a full backfill
 is on the order of 7 to 10 hours of wall clock, spread across paged calls.
 
-That is tolerable once. It is not tolerable as a recurring cost, and it is the
-first thing to fix:
-
-- The Census geocoder has a **batch endpoint** accepting up to 10,000 addresses
-  per upload. Switching the backfill to batch would cut this to minutes.
-- The daily incremental load is small (a few hundred permits), so the
-  one-at-a-time path is fine for steady state. Only the initial backfill hurts.
-
 `geocode_status` exists so that `no_match` rows (common for new subdivisions the
 Census file has not caught up with) leave the queue permanently instead of being
 retried every pass. `failed` marks transient errors and can be reset to
 `pending` to retry.
+
+### The batch geocoder (built 2026-08-30)
+
+`geocode-census-batch-background.mts` uses the Census **address batch endpoint**
+(a CSV upload, coordinates for the whole file in one request) instead of the
+one-at-a-time crawl. It:
+
+- Queries `permits` directly on the partial `geocode_status = 'pending'` index,
+  **not** the `permits_needing_geocode` view. The view's `row_number()` window
+  function runs over every pending row on each call and hits the Postgres
+  statement timeout at backfill scale (~85k pending). No cursor is needed - a
+  geocoded row flips out of `'pending'` and off the queue.
+- Is effectively capped at 1,000 rows per pass by PostgREST's `max-rows`, so the
+  full backfill is ~85 passes of ~10s each (~15 min), not 7-10 hours.
+- Writes every fetched row a terminal status via one merge-duplicates upsert per
+  500 (`matched` with lat/long, or `no_match` / `failed`). Blank-address rows go
+  straight to `no_match`.
+
+Observed match rate on the first pass: ~78% `matched`, ~22% `no_match`, rare
+`tie` (treated as `no_match`). The 22% miss is the new-construction gap and the
+main argument for the TCAD parcel join later.
+
+The one-at-a-time `geocode-census-background` function stays as-is for the small
+daily incremental.
 
 ## Schema
 
@@ -76,7 +113,10 @@ retried every pass. `failed` marks transient errors and can be reset to
   kept in `source_payload` so re-deriving a column never requires a re-import.
 - `data_sources` — import audit log, same pattern as ScoreScout.
 - `permits_needing_geocode` — cursor-paginated geocode queue, ordered by
-  `route_number` so the background function can resume with `?after=`.
+  `route_number`. **Does not scale to a full backfill**: the `row_number()`
+  window runs over every pending row per call and times out at ~85k pending. The
+  batch geocoder bypasses it; the sequential function would need the same fix
+  before a large run. Fine for the daily incremental.
 - `permits_near(lat, lng, radius_m, since, work_classes, min_valuation, limit)` —
   haversine radius search with a bounding-box prefilter. Deliberately no PostGIS:
   the prefilter hits `permits_lat_lng_idx` before any trigonometry runs, which is
@@ -99,13 +139,20 @@ physical notice sign.
 
 - No alerts, subscriptions, or email. That is the retention mechanic and the
   reason this beats a one-off lookup, so it should not wait long.
-- No deploy. No Netlify site, no Supabase project provisioned.
+- **Not deployed.** The Netlify site exists but nothing has been pushed to it;
+  no env vars set on Netlify; the daily import is not scheduled anywhere real.
+- The front end has never rendered against live data. `/api/permits` is verified
+  by curl only.
 - Domain not registered.
+- ~22% of permits are `no_match` from the Census geocoder and will never appear
+  on the map until the TCAD parcel join exists.
 - `permit_class` (e.g. `R- 645 Demolition One Family Homes`) is stored on the
   table but not returned by `permits_near()`, so `permitKind()` only sees
   `work_class`. Adding `permit_class` to the SQL function's return would let the
   demolition bucket key on the structural demo classes instead of a single
-  free-text value. Cheap to do now, before the migration is first applied.
+  free-text value. Now needs a follow-up migration (initial schema is applied).
+- Test `.mts` files live in `netlify/functions/_tests/` (underscore prefix) so
+  Netlify does not try to deploy them as functions.
 
 ## Tests
 
@@ -116,9 +163,14 @@ physical notice sign.
 - The importer's `toNumber` / `toInteger` / `toDate` coercers, `chunks`,
   `dedupeByPermitNumber`, and the `toPermitRecord` field mapping (extracted as a
   pure, exported function so it can be tested without Supabase).
+- The batch geocoder's `buildAddressCsv`, `parseCsvLine`, and
+  `parseBatchResponse` (the CSV round trip; the network call is not covered).
 
 ## Next steps, in order
 
-1. Provision Supabase, run the migration, register a Netlify site.
-2. Run the importer once, then the geocode backfill (consider batch first).
-3. Ship the radius search, then add subscriptions.
+1. Finish the geocode backfill, then open the app locally and confirm markers
+   render for a real address.
+2. Set the Supabase env vars on Netlify, wire the repo to the site, and do a
+   first deploy. Confirm the scheduled import runs there.
+3. Register `yardsign.city` and point it at the site.
+4. Ship the radius search UI polish, then add subscriptions.

@@ -6,6 +6,6 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: 'node',
-    include: ['src/**/*.test.{ts,tsx}', 'netlify/**/*.test.mts'],
+    include: ['src/**/*.test.{ts,tsx}', 'netlify/functions/_tests/**/*.test.mts'],
   },
 })

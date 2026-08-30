@@ -12,6 +12,10 @@ dist-ssr
 !.env.example
 .netlify
 
+# Supabase CLI local state
+supabase/.temp
+supabase/.branches
+
 .vscode/*
 !.vscode/extensions.json
 .idea

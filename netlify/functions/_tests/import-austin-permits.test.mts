@@ -7,7 +7,7 @@ import {
   toInteger,
   toNumber,
   toPermitRecord,
-} from './import-austin-permits.mts'
+} from '../import-austin-permits.mts'
 
 describe('toNumber', () => {
   it('parses numeric strings', () => {
