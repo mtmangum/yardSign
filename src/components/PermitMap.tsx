@@ -3,11 +3,14 @@ import { CircleMarker, MapContainer, Popup, TileLayer, Circle, useMap } from 're
 import type { Permit } from '../api/permits'
 import { permitKind } from './PermitList'
 
+// Keep in sync with the --demolition/--new-build/--remodel/--other tokens in
+// global.css. Static (not read from CSS) because Leaflet paints to canvas; the
+// Stadia basemap is always light, so the light-mode ramp is always correct.
 const KIND_COLOR: Record<ReturnType<typeof permitKind>, string> = {
-  demolition: '#b02a37',
-  new: '#d9480f',
-  remodel: '#2b6cb0',
-  other: '#6b7280',
+  demolition: '#ec3013',
+  new: '#201e1d',
+  remodel: '#8c877f',
+  other: '#c9c5c0',
 }
 
 function Recenter({ lat, lng, radius }: { lat: number; lng: number; radius: number }) {
@@ -69,12 +72,12 @@ export function PermitMap({ center, radius, permits, activeId, onHover }: Permit
             <CircleMarker
               key={permit.id}
               center={[permit.latitude, permit.longitude]}
-              radius={active ? 9 : 6}
+              radius={active ? 9 : kind === 'demolition' ? 7 : 5}
               pathOptions={{
-                color: KIND_COLOR[kind],
+                color: '#ffffff',
                 fillColor: KIND_COLOR[kind],
-                fillOpacity: active ? 0.95 : 0.7,
-                weight: active ? 3 : 1,
+                fillOpacity: active ? 1 : 0.85,
+                weight: 1.5,
               }}
               eventHandlers={{
                 mouseover: () => onHover(permit.id),

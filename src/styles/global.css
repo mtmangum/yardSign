@@ -1,30 +1,35 @@
 /* Yard Sign
    The visual reference is the physical object: a corrugated plastic notice
-   staked in a lawn. Heavy uppercase labels, hard edges, one loud accent,
-   and a paper-white ground rather than the usual dashboard gray. */
+   staked in a lawn. Flat and architectural — hard 2px rules do the organising,
+   nothing floats, and red is a signal (a structure coming down) rather than
+   decoration. Archivo throughout, every figure in mono so columns of numbers
+   line up down the list. See docs/restyle.md. */
 
 :root {
   color-scheme: light dark;
 
-  --paper: #faf9f5;
+  --paper: #f3f2f2;
   --paper-raised: #ffffff;
-  --ink: #17171a;
-  --ink-soft: #55555f;
-  --rule: #dedbd2;
+  --ink: #201e1d;
+  --ink-soft: #7a7570;
+  --rule: #ddd9d4;
+  --rule-strong: #201e1d;
 
-  --notice: #d9480f;
-  --notice-soft: #fdf0e8;
+  --notice: #ec3013;
+  --notice-soft: #fbeee9;
+  --tag: #e8e5e1;
 
-  --demolition: #b02a37;
-  --new-build: #d9480f;
-  --remodel: #2b6cb0;
-  --other: #6b7280;
+  /* One accent over an ink-to-pale ramp: demolition is the only saturated
+     colour in the app, so it reads first. */
+  --demolition: #ec3013;
+  --new-build: #201e1d;
+  --remodel: #8c877f;
+  --other: #c9c5c0;
 
-  --radius: 4px;
-  --shadow: 0 1px 2px rgba(23, 23, 26, 0.08), 0 8px 24px rgba(23, 23, 26, 0.06);
+  --radius: 0;
 
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  --font-sans: "Archivo", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -32,15 +37,19 @@
     --paper: #131316;
     --paper-raised: #1c1c20;
     --ink: #f2f1ec;
-    --ink-soft: #a3a2a0;
-    --rule: #32323a;
-    --notice: #ff7a45;
-    --notice-soft: #2a1a12;
-    --demolition: #e5686f;
-    --new-build: #ff7a45;
-    --remodel: #63a4e0;
-    --other: #9099a6;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.3);
+    --ink-soft: #9a958d;
+    --rule: #2e2b28;
+    --rule-strong: #f2f1ec;
+
+    --notice: #ff4a2e;
+    --notice-soft: #2a1410;
+    --tag: #35322e;
+
+    /* Ramp reversed so ordering by weight survives the flip. */
+    --demolition: #ff4a2e;
+    --new-build: #f2f1ec;
+    --remodel: #9a958d;
+    --other: #4a4741;
   }
 }
 
@@ -55,6 +64,12 @@ body {
 }
 
 button, input, select { font: inherit; color: inherit; }
+
+/* Keyboard focus: one 2px accent outline everywhere, including the selects. */
+:focus-visible {
+  outline: 2px solid var(--notice);
+  outline-offset: 2px;
+}
 
 .app {
   display: grid;
@@ -74,13 +89,13 @@ button, input, select { font: inherit; color: inherit; }
   display: flex;
   flex-direction: column;
   background: var(--paper-raised);
-  border-right: 1px solid var(--rule);
+  border-right: 2px solid var(--rule-strong);
   overflow: hidden;
 }
 
 .masthead {
   padding: 20px 20px 16px;
-  border-bottom: 2px solid var(--ink);
+  border-bottom: 2px solid var(--rule-strong);
 }
 
 .masthead__mark {
@@ -105,14 +120,19 @@ button, input, select { font: inherit; color: inherit; }
   color: var(--ink-soft);
 }
 
-.controls { padding: 16px 20px; border-bottom: 1px solid var(--rule); display: grid; gap: 14px; }
+.controls {
+  padding: 16px 20px;
+  border-bottom: 2px solid var(--rule-strong);
+  display: grid;
+  gap: 14px;
+}
 
 .field { display: grid; gap: 6px; }
 
 .field__label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--ink-soft);
 }
@@ -121,12 +141,10 @@ button, input, select { font: inherit; color: inherit; }
   width: 100%;
   padding: 9px 11px;
   background: var(--paper);
-  border: 1px solid var(--rule);
+  border: 1px solid var(--rule-strong);
   border-radius: var(--radius);
   outline: none;
 }
-
-.field__input:focus { border-color: var(--notice); box-shadow: 0 0 0 3px var(--notice-soft); }
 
 .field__row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
@@ -134,11 +152,10 @@ button, input, select { font: inherit; color: inherit; }
   list-style: none;
   margin: 4px 0 0;
   padding: 0;
-  border: 1px solid var(--rule);
+  border: 1px solid var(--rule-strong);
   border-radius: var(--radius);
   overflow: hidden;
   background: var(--paper-raised);
-  box-shadow: var(--shadow);
 }
 
 .suggestions__item {
@@ -169,25 +186,26 @@ button, input, select { font: inherit; color: inherit; }
 .results__count {
   position: sticky;
   top: 0;
-  padding: 10px 20px;
+  padding: 12px 20px;
   background: var(--paper-raised);
-  border-bottom: 1px solid var(--rule);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  border-bottom: 2px solid var(--rule-strong);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--ink-soft);
+  color: var(--ink);
 }
 
 .permit {
   display: block;
   width: 100%;
   text-align: left;
-  padding: 14px 20px 14px 17px;
+  padding: 14px 20px 14px 15px;
   background: none;
   border: 0;
   border-bottom: 1px solid var(--rule);
-  border-left: 3px solid var(--other);
+  border-left: 5px solid var(--other);
   cursor: pointer;
 }
 
@@ -199,22 +217,36 @@ button, input, select { font: inherit; color: inherit; }
 
 .permit__head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
 
-.permit__address { font-weight: 650; font-size: 14px; letter-spacing: -0.01em; }
+.permit__address { font-weight: 600; font-size: 14px; letter-spacing: -0.01em; }
 
-.permit__distance { font-size: 11px; color: var(--ink-soft); font-family: var(--font-mono); white-space: nowrap; }
+.permit__distance {
+  font-size: 11px;
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
 
+/* A filled tag rather than accent-coloured text, so a row of remodels does not
+   tint the whole panel red. White on accent for demolition only. */
 .permit__work {
   display: inline-block;
-  margin-top: 6px;
+  margin-top: 8px;
+  padding: 2px 6px;
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--notice);
+  background: var(--tag);
+  color: var(--ink);
+}
+
+.permit[data-kind="demolition"] .permit__work {
+  background: var(--notice);
+  color: #fff;
 }
 
 .permit__description {
-  margin: 5px 0 0;
+  margin: 6px 0 0;
   font-size: 13px;
   color: var(--ink-soft);
   line-height: 1.45;
@@ -224,22 +256,29 @@ button, input, select { font: inherit; color: inherit; }
   overflow: hidden;
 }
 
-.permit__meta { margin-top: 7px; font-size: 11px; color: var(--ink-soft); font-family: var(--font-mono); }
+.permit__meta {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+}
 
 /* Map ------------------------------------------------------------------ */
 
 .app__map { position: relative; }
 .app__map .leaflet-container { width: 100%; height: 100%; background: var(--paper); }
 
+/* The legend and popups sit on the always-light basemap, so they stay light in
+   both themes rather than following prefers-color-scheme. */
 .map__legend {
   position: absolute;
   right: 12px;
   bottom: 22px;
   z-index: 500;
-  background: var(--paper-raised);
-  border: 1px solid var(--rule);
+  background: #ffffff;
+  color: #201e1d;
+  border: 2px solid #201e1d;
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
   padding: 10px 12px;
   display: grid;
   gap: 5px;
@@ -247,8 +286,8 @@ button, input, select { font: inherit; color: inherit; }
 }
 
 .map__legend-row { display: flex; align-items: center; gap: 7px; }
-.map__legend-dot { width: 9px; height: 9px; border-radius: 50%; }
+.map__legend-dot { width: 9px; height: 9px; flex: none; outline: 1px solid rgba(32, 30, 29, 0.25); }
 
-.map__popup h3 { margin: 0 0 4px; font-size: 13px; }
-.map__popup p { margin: 0 0 4px; font-size: 12px; color: var(--ink-soft); }
+.map__popup h3 { margin: 0 0 4px; font-size: 13px; color: #201e1d; }
+.map__popup p { margin: 0 0 4px; font-size: 12px; color: #6b6660; }
 .map__popup a { color: var(--notice); font-size: 12px; }
