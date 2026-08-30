@@ -41,7 +41,17 @@ export default function App() {
       <aside className="app__panel">
         <header className="masthead">
           <span className="masthead__mark">
-            <span className="masthead__stake" aria-hidden="true" />
+            {/* A coroplast lawn sign, face-on: hard corners, 2px ink edge, a red
+                bar down the left that rhymes with the .permit list rows. */}
+            <svg className="masthead__sign" viewBox="0 0 26 20" aria-hidden="true" focusable="false">
+              <rect
+                x="1" y="3" width="24" height="14"
+                fill="var(--paper-raised)" stroke="currentColor" strokeWidth="2"
+              />
+              <rect x="2" y="4" width="4" height="12" fill="var(--notice)" />
+              <rect x="9" y="7" width="13" height="2" fill="currentColor" />
+              <rect x="9" y="11" width="8" height="2" fill="currentColor" />
+            </svg>
             Yard Sign
           </span>
           <p className="masthead__tagline">Every notice posted near you, without the drive-by.</p>
