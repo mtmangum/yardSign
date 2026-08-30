@@ -129,6 +129,35 @@ button, input, select { font: inherit; color: inherit; }
 
 .field { display: grid; gap: 6px; }
 
+/* Locate crosshair lives inside the address input, at the right edge. */
+.address-row { position: relative; }
+.address-row .field__input { width: 100%; padding-right: 38px; }
+
+.locate {
+  position: absolute;
+  right: 1px;
+  top: 1px;
+  bottom: 1px;
+  width: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.locate:hover { color: var(--notice); }
+.locate:disabled { cursor: progress; opacity: 0.5; }
+
+.locate__error {
+  margin: 4px 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--notice);
+}
+
 .field__label {
   font-size: 10px;
   font-weight: 700;

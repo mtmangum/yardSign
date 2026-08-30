@@ -3,6 +3,7 @@ import { AddressSearch } from './components/AddressSearch'
 import { PermitList } from './components/PermitList'
 import { PermitMap } from './components/PermitMap'
 import { usePermits } from './hooks/usePermits'
+import { useGeolocate } from './hooks/useGeolocate'
 import type { AddressMatch, Permit, PermitQuery } from './api/permits'
 
 const RADIUS_OPTIONS = [
@@ -36,6 +37,7 @@ export default function App() {
     [location, radius, days],
   )
   const { permits, total, loading, error } = usePermits(query)
+  const geo = useGeolocate(({ lat, lng }) => setLocation({ label: 'Current location', lat, lng }))
 
   const openPermit = (permit: Permit) => {
     if (permit.source_url) window.open(permit.source_url, '_blank', 'noreferrer')
@@ -63,7 +65,13 @@ export default function App() {
         </header>
 
         <div className="controls">
-          <AddressSearch onSelect={setLocation} selectedLabel={location?.label ?? null} />
+          <AddressSearch
+            onSelect={setLocation}
+            selectedLabel={location?.label ?? null}
+            onLocate={geo.locate}
+            locating={geo.locating}
+            geoError={geo.error}
+          />
           <div className="field__row">
             <div className="field">
               <label className="field__label" htmlFor="radius">Radius</label>
@@ -114,7 +122,9 @@ export default function App() {
         permits={permits}
         activeId={activeId}
         onHover={setActiveId}
-        onLocate={({ lat, lng }) => setLocation({ label: 'Current location', lat, lng })}
+        onLocate={geo.locate}
+        locating={geo.locating}
+        geoError={geo.error}
       />
     </div>
   )

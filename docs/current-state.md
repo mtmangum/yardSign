@@ -1,10 +1,15 @@
 # Yard Sign: current state
 
 Last updated: 2026-08-30. **Deployed, live, and fully working** at
-https://yardsign-523.netlify.app (auto-deploys from `main`). Backend
-provisioned, loaded, fully geocoded; the whole flow — search, list, map with the
-Stadia basemap, color-coded markers — is browser-verified against the live site,
-light and dark. Only thing left before it's shippable: a domain.
+https://yardsign-523.netlify.app. Backend provisioned, loaded, fully geocoded;
+the whole flow — opens on downtown Austin with data, search or locate button,
+list, map with the Stadia basemap, color-coded markers, "N of M closest first"
+count — is browser-verified against the live site, light and dark. Only thing
+left before it is shippable: a domain.
+
+**Deploys are manual now** (a push to `main` still triggers a Netlify build via
+the connected repo — so do not push casually). Deploy by pushing `main` when a
+change is ready, or `netlify deploy --build --prod`.
 
 ## Infrastructure (provisioned 2026-08-30)
 
@@ -15,10 +20,10 @@ All under Matt Mangum's personal accounts.
 | Supabase project | `yardsign-production`, ref `ohdzlznzyrvctxogbhch`, region `ca-central-1` |
 | Supabase dashboard | https://supabase.com/dashboard/project/ohdzlznzyrvctxogbhch |
 | Netlify site | `yardsign-523` (`yardsign` / `yardsign-city` subdomains were taken), id `55c34cfb-0863-4a24-bb00-5bebd65bf338` |
-| Live URL | https://yardsign-523.netlify.app — GitHub repo connected, push to `main` auto-builds |
+| Live URL | https://yardsign-523.netlify.app — GitHub repo connected; a push to `main` builds and publishes (kept manual on purpose) |
 | Netlify env | `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `IMPORT_SECRET`, `IMPORT_WINDOW_MONTHS`, `VITE_STADIA_API_KEY` all set. Stadia key is domain-restricted in the Stadia dashboard (localhost + `yardsign-523.netlify.app` + `yardsign.city`) |
-| GitHub | `github.com/mtmangum/yardSign` (public), `main` |
-| Migration state | `202608300001` + `202608300002` (permit_class in `permits_near()`) applied |
+| GitHub | `github.com/mtmangum/yardSign` (public), `main` — local may be ahead of `origin`; unpushed commits are not yet deployed |
+| Migrations applied | `202608300001` (initial), `202608300002` (permit_class in `permits_near()`), `202608300003` (`permits_near_count()`) |
 | `permits` rows | 84,521, kept fresh by the daily incremental import (07:00 UTC cron) |
 | Geocoded | 66,734 `matched` (79%), 17,787 `no_match` (21%), 0 `pending`, 0 `failed` |
 | Basemap | Stadia Maps "Alidade Smooth" (was CARTO Voyager — CARTO now watermarks keyless tiles) |
@@ -59,7 +64,7 @@ everything server side. The browser never holds a Supabase key; all reads go
 through `/api/permits`.
 
 ```
-Socrata 3syk-w9eu ──► import-austin-permits (daily 07:00 UTC)
+Socrata 3syk-w9eu ──► import-austin-permits (daily 07:00 UTC, incremental)
                           │ upsert on (city_code, permit_number)
                           ▼
                       permits table
@@ -68,10 +73,16 @@ Socrata 3syk-w9eu ──► import-austin-permits (daily 07:00 UTC)
                           │      steady state: geocode-census-background
                           │            │ fills latitude/longitude
                           ▼            ▼
-                      permits_near() ──► /api/permits ──► browser
+            permits_near() + permits_near_count() ──► /api/permits ──► browser
+                                                      (rows capped at 500;
+                                                       total is uncapped)
 
            /api/geocode-address ──► Census one-line geocoder (search box)
 ```
+
+The browser opens on downtown Austin (`App.tsx` `DEFAULT_LOCATION`) so the map
+is populated on first paint; the locate button (`PermitMap.tsx`) recentres on
+`navigator.geolocation`.
 
 ## The data constraint that shapes everything
 
@@ -126,10 +137,14 @@ daily incremental.
 
 ## Schema
 
-`supabase/migrations/` — `202608300001_initial_schema.sql`, then
-`202608300002_permits_near_permit_class.sql` (adds `permit_class` to the
-`permits_near()` output so `permitKind()` can key the demolition bucket on the
-structural classes).
+`supabase/migrations/`:
+
+- `202608300001_initial_schema.sql` — tables, the geocode queue view, `permits_near()`.
+- `202608300002_permits_near_permit_class.sql` — adds `permit_class` to the
+  `permits_near()` output so `permitKind()` can key the demolition bucket on the
+  structural classes.
+- `202608300003_permits_near_count.sql` — `permits_near_count()`, the uncapped
+  total for the same radius/time/filter window.
 
 - `permits` — one row per `(city_code, permit_number)`, with the raw Socrata row
   kept in `source_payload` so re-deriving a column never requires a re-import.
@@ -143,6 +158,10 @@ structural classes).
   haversine radius search with a bounding-box prefilter. Deliberately no PostGIS:
   the prefilter hits `permits_lat_lng_idx` before any trigonometry runs, which is
   fast enough at Austin's row counts and keeps the database dependency-free.
+  Returns at most `limit` rows (API default 500, hard cap 2000), nearest first.
+- `permits_near_count(...)` — same filters, no `ORDER BY` / `LIMIT`, returns the
+  integer total. `/api/permits` calls both in parallel and returns `total`; the
+  count bar shows "500 of 1,044 · closest first" when `total` exceeds the rows.
 
 RLS is enabled on both tables with **no policies**, so anon is denied and the
 service key used by the functions bypasses it. Same posture as ScoreScout.
@@ -170,14 +189,13 @@ near-identical desaturated equivalent.
 
 - No alerts, subscriptions, or email. That is the retention mechanic and the
   reason this beats a one-off lookup, so it should not wait long.
-- **Not deployed.** The Netlify site exists but nothing has been pushed to it;
-  no env vars set on Netlify (`SUPABASE_URL`, `SUPABASE_SECRET_KEY`,
-  `IMPORT_SECRET`, `VITE_STADIA_API_KEY`); the daily import is not scheduled
-  anywhere real.
-- The front end (restyle + `permit_class`) is browser-verified against
-  `netlify dev`, light and dark; the deployed site still needs the Stadia key
-  before its map is worth looking at.
-- Domain not registered; no Stadia API key yet.
+- **Domain not registered.** `yardsign.city` still needs buying and pointing at
+  the Netlify site.
+- **Local `main` may be ahead of `origin`** — deploys are manual, so unpushed
+  commits are not live. Migration `202608300003` is applied to the DB, but the
+  code that calls `permits_near_count()` (the `total` field) ships only when the
+  matching commit is pushed. Harmless in the meantime: the deployed
+  `permits.mts` does not reference the new function.
 - 21% of permits are `no_match` from the Census geocoder and will not appear on
   the map until the TCAD parcel join exists.
 - Test `.mts` files live in `netlify/functions/_tests/` (underscore prefix) so
@@ -213,17 +231,23 @@ near-identical desaturated equivalent.
 
 ## Next steps, in order
 
-1. **Domain** — register `yardsign.city`, add it in the Netlify site's domain
+1. **Push what's staged and deploy** — local `main` is ahead of `origin` with
+   the count bar and the locate button. A push builds and publishes.
+2. **Domain** — register `yardsign.city`, add it in the Netlify site's domain
    settings, point DNS at Netlify. The Stadia key already allows it.
-2. **Alerts / subscriptions** — the retention mechanic. Needs a `subscriptions`
+3. **Alerts / subscriptions** — the retention mechanic. Needs a `subscriptions`
    table (email, lat/lng, radius, filters, verification token, last-sent
    watermark), an email provider, a double-opt-in flow, and a scheduled diff.
-3. Smaller: the deferred per-kind chip row in the count bar (`docs/restyle.md`
+4. Smaller: the deferred per-kind chip row in the count bar (`docs/restyle.md`
    §5, needs JSX); the TCAD parcel join for the 21% Census `no_match` gap.
 
 Done 2026-08-30, after deploy: **restyle applied** (`a966b19`); **`permitKind()`
 keys demolition on `permit_class`** (migration `202608300002`, `acc4543`);
-**Stadia key set, live map working** (`VITE_STADIA_API_KEY`).
+**Stadia key set, live map working**; **opens on downtown Austin with data**
+(`c8e16b6`); **locate button** in the address row and on the map, sharing
+`useGeolocate` (`9c66c6f`); **count bar shows "N of M · closest first"** when the
+500-marker cap bites (migration `202608300003`, `f62d813`). The last two are
+committed locally, not pushed.
 
 ## Watch after the laptop closes
 
