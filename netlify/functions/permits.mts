@@ -9,9 +9,14 @@ const MAX_DAYS = 1095
 
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max)
 
-function numberParam(params: URLSearchParams, key: string, fallback: number) {
-  const raw = Number(params.get(key))
-  return Number.isFinite(raw) ? raw : fallback
+export function numberParam(params: URLSearchParams, key: string, fallback: number) {
+  const raw = params.get(key)
+  // An absent or blank param must fall back, not coerce: Number(null) and
+  // Number('') are both 0, which is finite, so the old guard silently turned a
+  // missing ?limit= into p_limit: 0 -> clamped to 1 -> one row per query.
+  if (raw === null || raw.trim() === '') return fallback
+  const value = Number(raw)
+  return Number.isFinite(value) ? value : fallback
 }
 
 export default async (request: Request) => {

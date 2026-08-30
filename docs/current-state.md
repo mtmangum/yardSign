@@ -190,6 +190,15 @@ near-identical desaturated equivalent.
   pure, exported function so it can be tested without Supabase).
 - The batch geocoder's `buildAddressCsv`, `parseCsvLine`, and
   `parseBatchResponse` (the CSV round trip; the network call is not covered).
+- `permits.mts` `numberParam` - regression guard for the scaffold bug below.
+
+## Fixed after first contact with data
+
+- **`/api/permits` returned exactly one row per query.** `numberParam` in
+  `permits.mts` did `Number(params.get(key))`; for an absent param that is
+  `Number(null) === 0`, which is finite, so it returned `0` instead of the
+  fallback. `?limit=` is never sent by the front end, so `p_limit` became `0`,
+  clamped to `1`. Now falls back on a null/blank/non-numeric value.
 
 ## Next steps, in order
 
