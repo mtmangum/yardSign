@@ -90,16 +90,84 @@ export function dedupeByPermitNumber(rows: AustinPermitRow[]) {
   return [...latestByPermit.values()]
 }
 
-function importWindowStart(months: number) {
-  const start = new Date()
-  start.setMonth(start.getMonth() - months)
-  return start.toISOString().slice(0, 19)
+// Re-pull this many days before the last successful run, so permits the city
+// publishes a few days late are still picked up. Override with IMPORT_OVERLAP_DAYS.
+const DEFAULT_OVERLAP_DAYS = 14
+
+// A Socrata floating-timestamp literal: 'YYYY-MM-DDTHH:MM:SS', no zone. These
+// compare correctly as plain strings because the format is fixed-width.
+const toSocrataTs = (d: Date) => d.toISOString().slice(0, 19)
+
+export interface WatermarkRead {
+  watermark: string | null
+  errored: boolean
 }
 
-async function fetchPermitRows(months: number) {
+// Most recent successful import, used as the incremental cursor.
+export async function lastSuccessfulImport(): Promise<WatermarkRead> {
+  try {
+    const response = await supabaseRequest(
+      `data_sources?select=retrieved_at&status=eq.success` +
+        `&source_name=eq.${encodeURIComponent(sourceName)}` +
+        `&order=retrieved_at.desc&limit=1`,
+    )
+    const rows = (await response.json()) as Array<{ retrieved_at: string }>
+    return { watermark: rows[0]?.retrieved_at ?? null, errored: false }
+  } catch (error) {
+    console.warn(`Import watermark read failed: ${error instanceof Error ? error.message : error}`)
+    return { watermark: null, errored: true }
+  }
+}
+
+// Decide how far back to pull, in priority order:
+//   1. ?since=YYYY-MM-DD          -> exactly that date
+//   2. ?months=N                  -> now - N months (manual backfill knob)
+//   3. ?full=1                    -> now - maxMonths (the configured full window)
+//   4. no prior successful run    -> now - maxMonths (first run does the backfill)
+//   5. watermark read errored     -> now - 45d  (safe slice, never the full window)
+//   6. otherwise                  -> last success - overlap, clamped so a long
+//                                    cron outage still cannot exceed maxMonths
+export function resolveWindow(opts: {
+  now: Date
+  watermark: string | null
+  watermarkErrored: boolean
+  overlapDays: number
+  maxMonths: number
+  explicitSince?: string | null
+  explicitMonths?: number | null
+  full?: boolean
+}): { since: string; mode: string } {
+  const { now, watermark, watermarkErrored, overlapDays, maxMonths, explicitSince, explicitMonths, full } = opts
+  // All arithmetic in UTC so the result does not depend on the runner's zone.
+  const shifted = (from: Date, mutate: (d: Date) => void) => {
+    const copy = new Date(from)
+    mutate(copy)
+    return copy
+  }
+  const monthsAgo = (m: number) => shifted(now, (d) => d.setUTCMonth(d.getUTCMonth() - m))
+  const daysAgo = (n: number) => shifted(now, (d) => d.setUTCDate(d.getUTCDate() - n))
+  const maxStart = toSocrataTs(monthsAgo(maxMonths))
+
+  if (explicitSince) return { since: `${explicitSince.slice(0, 10)}T00:00:00`, mode: 'explicit-since' }
+  if (explicitMonths && explicitMonths > 0) {
+    return { since: toSocrataTs(monthsAgo(explicitMonths)), mode: `explicit-months:${explicitMonths}` }
+  }
+  if (full) return { since: maxStart, mode: 'full' }
+  if (watermarkErrored) return { since: toSocrataTs(daysAgo(45)), mode: 'watermark-error-fallback' }
+  if (!watermark) return { since: maxStart, mode: 'first-run' }
+
+  const parsed = new Date(watermark)
+  if (Number.isNaN(parsed.getTime())) return { since: toSocrataTs(daysAgo(45)), mode: 'bad-watermark-fallback' }
+
+  const incremental = toSocrataTs(shifted(parsed, (d) => d.setDate(d.getDate() - overlapDays)))
+  return incremental > maxStart
+    ? { since: incremental, mode: 'incremental' }
+    : { since: maxStart, mode: 'incremental-clamped' }
+}
+
+async function fetchPermitRows(since: string) {
   const allRows: AustinPermitRow[] = []
   const pageSize = 5000
-  const since = importWindowStart(months)
   for (let offset = 0; ; offset += pageSize) {
     const query = new URLSearchParams({
       $limit: String(pageSize),
@@ -116,12 +184,27 @@ async function fetchPermitRows(months: number) {
   return allRows
 }
 
-export default async () => {
+export default async (request: Request) => {
   const startedAt = new Date().toISOString()
-  const months = Number(process.env.IMPORT_WINDOW_MONTHS ?? 18)
+  const maxMonths = Number(process.env.IMPORT_WINDOW_MONTHS ?? 18)
+  const overlapDays = Number(process.env.IMPORT_OVERLAP_DAYS ?? DEFAULT_OVERLAP_DAYS)
+  const params = new URL(request.url).searchParams
+
   try {
-    const rows = (await fetchPermitRows(months)).filter((row) => row.permit_number)
-    console.log(`Austin permit import fetched ${rows.length} permits from the last ${months} months`)
+    const { watermark, errored } = await lastSuccessfulImport()
+    const { since, mode } = resolveWindow({
+      now: new Date(startedAt),
+      watermark,
+      watermarkErrored: errored,
+      overlapDays: Number.isFinite(overlapDays) ? overlapDays : DEFAULT_OVERLAP_DAYS,
+      maxMonths: Number.isFinite(maxMonths) ? maxMonths : 18,
+      explicitSince: params.get('since'),
+      explicitMonths: Number(params.get('months')) || null,
+      full: params.get('full') === '1',
+    })
+
+    const rows = (await fetchPermitRows(since)).filter((row) => row.permit_number)
+    console.log(`Austin permit import: mode=${mode} since=${since} fetched=${rows.length}`)
 
     const deduped = dedupeByPermitNumber(rows)
 
@@ -141,11 +224,12 @@ export default async () => {
         retrieved_at: startedAt,
         row_count: deduped.length,
         status: 'success',
+        message: `mode=${mode} since=${since}`,
       }),
     })
 
-    console.log(`Austin permit import completed: ${deduped.length} permits upserted`)
-    return Response.json({ fetchedRows: rows.length, upsertedPermits: deduped.length })
+    console.log(`Austin permit import completed: ${deduped.length} permits upserted (mode=${mode})`)
+    return Response.json({ mode, since, fetchedRows: rows.length, upsertedPermits: deduped.length })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Import failed'
     console.error(`Austin permit import failed: ${message}`)

@@ -3,6 +3,7 @@ import {
   type AustinPermitRow,
   chunks,
   dedupeByPermitNumber,
+  resolveWindow,
   toDate,
   toInteger,
   toNumber,
@@ -162,5 +163,51 @@ describe('toPermitRecord', () => {
   it('keeps the raw row in source_payload so a re-import is never needed to re-derive a column', () => {
     const record = toPermitRecord(fullRow, 'now')
     expect(record.source_payload).toBe(fullRow)
+  })
+})
+
+describe('resolveWindow', () => {
+  // Day 15 so the 18-month subtraction never rolls a short month.
+  const now = new Date('2026-08-15T07:00:00.000Z')
+  const base = { now, watermarkErrored: false, overlapDays: 14, maxMonths: 18 } as const
+  const FULL_WINDOW = '2025-02-15T07:00:00' // now - 18 months, UTC
+
+  it('honours an explicit ?since date', () => {
+    const r = resolveWindow({ ...base, watermark: null, explicitSince: '2026-01-15' })
+    expect(r).toEqual({ since: '2026-01-15T00:00:00', mode: 'explicit-since' })
+  })
+
+  it('honours an explicit ?months window (not clamped - a deliberate backfill knob)', () => {
+    const r = resolveWindow({ ...base, watermark: '2026-08-14T07:00:00Z', explicitMonths: 24 })
+    expect(r).toEqual({ since: '2024-08-15T07:00:00', mode: 'explicit-months:24' })
+  })
+
+  it('pulls the full window on first run (no watermark)', () => {
+    expect(resolveWindow({ ...base, watermark: null })).toEqual({ since: FULL_WINDOW, mode: 'first-run' })
+  })
+
+  it('pulls the full window when ?full=1', () => {
+    const r = resolveWindow({ ...base, watermark: '2026-08-14T07:00:00Z', full: true })
+    expect(r).toEqual({ since: FULL_WINDOW, mode: 'full' })
+  })
+
+  it('pulls last-success minus the overlap on a normal incremental run', () => {
+    const r = resolveWindow({ ...base, watermark: '2026-08-20T05:30:00.000Z' })
+    expect(r).toEqual({ since: '2026-08-06T05:30:00', mode: 'incremental' }) // 08-20 minus 14d
+  })
+
+  it('clamps to the configured window when the last success is ancient', () => {
+    const r = resolveWindow({ ...base, watermark: '2024-01-01T00:00:00Z' })
+    expect(r).toEqual({ since: FULL_WINDOW, mode: 'incremental-clamped' })
+  })
+
+  it('falls back to a 45-day slice - never the full window - when the watermark read failed', () => {
+    const r = resolveWindow({ ...base, watermark: null, watermarkErrored: true })
+    expect(r).toEqual({ since: '2026-07-01T07:00:00', mode: 'watermark-error-fallback' })
+  })
+
+  it('falls back to a 45-day slice on an unparseable watermark', () => {
+    const r = resolveWindow({ ...base, watermark: 'not-a-date' })
+    expect(r).toEqual({ since: '2026-07-01T07:00:00', mode: 'bad-watermark-fallback' })
   })
 })
