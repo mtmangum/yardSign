@@ -1,9 +1,11 @@
 # Yard Sign: current state
 
-Last updated: 2026-08-30. Backend is provisioned, loaded, and fully geocoded.
-The API is verified end to end against the live database (`/api/geocode-address`
-and `/api/permits` return real results through `netlify dev`). Not deployed to
-production; the map has not been eyeballed in a browser against live data.
+Last updated: 2026-08-30. **Deployed and live** at
+https://yardsign-523.netlify.app (auto-deploys from `main`). Backend
+provisioned, loaded, fully geocoded; list + search + `/api/*` verified in a
+browser against the live site. **One thing broken in prod:** the basemap tiles
+401 because `VITE_STADIA_API_KEY` is not set yet — markers render on a blank
+field. Set the key and redeploy to fix.
 
 ## Infrastructure (provisioned 2026-08-30)
 
@@ -14,9 +16,11 @@ All under Matt Mangum's personal accounts.
 | Supabase project | `yardsign-production`, ref `ohdzlznzyrvctxogbhch`, region `ca-central-1` |
 | Supabase dashboard | https://supabase.com/dashboard/project/ohdzlznzyrvctxogbhch |
 | Netlify site | `yardsign-523` (`yardsign` / `yardsign-city` subdomains were taken), id `55c34cfb-0863-4a24-bb00-5bebd65bf338` |
+| Live URL | https://yardsign-523.netlify.app — GitHub repo connected, push to `main` auto-builds |
+| Netlify env | `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `IMPORT_SECRET`, `IMPORT_WINDOW_MONTHS` set. **`VITE_STADIA_API_KEY` missing** (basemap 401s until set + redeploy) |
 | GitHub | `github.com/mtmangum/yardSign` (public), `main` |
 | Migration state | `202608300001_initial_schema.sql` applied; `supabase migration list` clean |
-| `permits` rows | 84,521 imported (18-month window, 2026-08-30) |
+| `permits` rows | 84,521, kept fresh by the daily incremental import (07:00 UTC cron) |
 | Geocoded | 66,734 `matched` (79%), 17,787 `no_match` (21%), 0 `pending`, 0 `failed` |
 | Basemap | Stadia Maps "Alidade Smooth" (was CARTO Voyager — CARTO now watermarks keyless tiles) |
 | Domain | `yardsign.city` still not registered |
@@ -199,14 +203,33 @@ near-identical desaturated equivalent.
   `Number(null) === 0`, which is finite, so it returned `0` instead of the
   fallback. `?limit=` is never sent by the front end, so `p_limit` became `0`,
   clamped to `1`. Now falls back on a null/blank/non-numeric value.
+- **The scheduled importer would time out every night.** It re-pulled the full
+  18-month window (~84k rows, ~6 min) on every run; Netlify scheduled functions
+  cap at ~30s. Now incremental: reads the last successful run from
+  `data_sources`, pulls only `issue_date >` (that minus `IMPORT_OVERLAP_DAYS`,
+  default 14), clamped to `IMPORT_WINDOW_MONTHS`. First run and `?full=1` still
+  do the full backfill; `?since=` / `?months=` are manual knobs. Verified live:
+  `mode=incremental`, 2,352 rows, 12.8s.
 
 ## Next steps, in order
 
-1. Open the app in a browser against `netlify dev` and confirm the map paints
-   markers for a real address (backfill is done; the API works).
-2. Register a free Stadia Maps API key, put it in `.env` as
-   `VITE_STADIA_API_KEY`, restrict it to `localhost` + `yardsign.city`.
-3. Set the four env vars on Netlify, connect the GitHub repo to the site, and do
-   a first deploy. Confirm the scheduled `import-austin-permits` runs there.
-4. Register `yardsign.city` and point it at the site.
-5. Ship the radius search UI polish, then add subscriptions.
+1. **Stadia key** — register a free key at stadiamaps.com, restrict it to
+   `localhost` + `yardsign-523.netlify.app` + `yardsign.city`, then
+   `netlify env:set VITE_STADIA_API_KEY …` and redeploy. Fixes the blank map.
+2. **Restyle** — rewrite `global.css` per `docs/restyle.md` (CSS-only subset;
+   fonts via a Google Fonts `<link>` in `index.html` — decided). Reconcile the
+   `KIND_COLOR` object in `PermitMap.tsx`. See the review notes in that file's
+   git history / the restyle discussion.
+3. **Domain** — register `yardsign.city`, point it at the Netlify site.
+4. **`permit_class` migration** — add it to `permits_near()`'s return so
+   `permitKind()` can key on the structural demolition classes.
+5. **Alerts / subscriptions** — the retention mechanic. Needs a `subscriptions`
+   table (email, lat/lng, radius, filters, verification token, last-sent
+   watermark) and a scheduled diff.
+
+## Watch after the laptop closes
+
+- The 07:00 UTC cron should log `mode=incremental` and finish in ~15s. Check
+  `data_sources` (newest row's `message` shows `mode=` and `since=`) or the
+  Netlify function logs. A `status='failed'` row means it errored - the `since`
+  cursor is safe to retry.
