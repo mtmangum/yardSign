@@ -52,6 +52,13 @@ const WORK_CLASS_KIND: Record<string, PermitKind> = {
 }
 
 export function permitKind(permit: Permit): PermitKind {
+  // permit_class is the strongest signal for the headline bucket: its
+  // "R- 645 Demolition One Family Homes" / "C- 649 Demolition ..." classes mean
+  // a structure is coming down. work_class cannot make that call - it files
+  // teardowns and "Interior Demo Non-Structural" gut-jobs under one "Demolition".
+  const permitClass = (permit.permit_class ?? '').toLowerCase()
+  if (permitClass.includes('demolition')) return 'demolition'
+
   const work = (permit.work_class ?? '').trim().replace(/\s+/g, ' ').toLowerCase()
   if (!work) return 'other'
 

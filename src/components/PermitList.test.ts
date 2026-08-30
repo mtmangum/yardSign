@@ -6,6 +6,7 @@ const permit = (overrides: Partial<Permit> = {}): Permit => ({
   id: 'p1',
   permit_number: '2025-000001 BP',
   permit_type_desc: 'Building Permit',
+  permit_class: null,
   permit_class_mapped: 'Residential',
   work_class: null,
   description: null,
@@ -64,6 +65,21 @@ describe('permitKind', () => {
 
   it('keeps interior, non-structural demo out of the demolition bucket', () => {
     expect(permitKind(permit({ work_class: 'Interior Demo Non-Structural' }))).toBe('remodel')
+  })
+
+  describe('permit_class overrides work_class for the demolition bucket', () => {
+    it('classifies a structural demolition class as demolition', () => {
+      expect(permitKind(permit({ permit_class: 'R- 645 Demolition One Family Homes', work_class: 'Demolition' }))).toBe('demolition')
+      expect(permitKind(permit({ permit_class: 'C- 649 Demolition All Other Bldgs Com', work_class: null }))).toBe('demolition')
+    })
+
+    it('still lets interior demo fall through to remodel when permit_class is not a demolition class', () => {
+      expect(permitKind(permit({ permit_class: 'C-1000 Commercial Remodel', work_class: 'Interior Demo Non-Structural' }))).toBe('remodel')
+    })
+
+    it('is harmless when permit_class is absent', () => {
+      expect(permitKind(permit({ permit_class: null, work_class: 'New' }))).toBe('new')
+    })
   })
 
   it('is case- and whitespace-insensitive', () => {

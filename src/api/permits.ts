@@ -2,6 +2,7 @@ export interface Permit {
   id: string
   permit_number: string
   permit_type_desc: string | null
+  permit_class: string | null
   permit_class_mapped: string | null
   work_class: string | null
   description: string | null
