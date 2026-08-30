@@ -1,0 +1,34 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[functions]
+  directory = "netlify/functions"
+
+# Scanner probe paths. This is not a WordPress site; 404 them so they stop
+# counting as pageviews. Must stay above the SPA catch-all: Netlify applies
+# the first matching rule.
+[[redirects]]
+  from = "/wp-admin/*"
+  to = "/index.html"
+  status = 404
+
+[[redirects]]
+  from = "/wp-login.php"
+  to = "/index.html"
+  status = 404
+
+[[redirects]]
+  from = "/xmlrpc.php"
+  to = "/index.html"
+  status = 404
+
+[[redirects]]
+  from = "/.env"
+  to = "/index.html"
+  status = 404
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

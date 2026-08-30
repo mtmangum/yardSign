@@ -1,0 +1,57 @@
+export interface Permit {
+  id: string
+  permit_number: string
+  permit_type_desc: string | null
+  permit_class_mapped: string | null
+  work_class: string | null
+  description: string | null
+  address: string | null
+  issue_date: string | null
+  applied_date: string | null
+  status_current: string | null
+  total_job_valuation: number | null
+  housing_units: number | null
+  latitude: number
+  longitude: number
+  source_url: string | null
+  distance_m: number
+}
+
+export interface PermitQuery {
+  lat: number
+  lng: number
+  radius: number
+  days: number
+  workClasses?: string[]
+}
+
+export interface AddressMatch {
+  label: string
+  lat: number
+  lng: number
+}
+
+export async function fetchPermits(query: PermitQuery, signal?: AbortSignal): Promise<Permit[]> {
+  const params = new URLSearchParams({
+    lat: String(query.lat),
+    lng: String(query.lng),
+    radius: String(query.radius),
+    days: String(query.days),
+  })
+  for (const workClass of query.workClasses ?? []) params.append('workClass', workClass)
+
+  const response = await fetch(`/api/permits?${params}`, { signal })
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}))
+    throw new Error(body.error ?? `Permit lookup failed (${response.status})`)
+  }
+  const payload = (await response.json()) as { permits: Permit[] }
+  return payload.permits
+}
+
+export async function geocodeAddress(query: string, signal?: AbortSignal): Promise<AddressMatch[]> {
+  const response = await fetch(`/api/geocode-address?q=${encodeURIComponent(query)}`, { signal })
+  if (!response.ok) return []
+  const payload = (await response.json()) as { matches: AddressMatch[] }
+  return payload.matches
+}
