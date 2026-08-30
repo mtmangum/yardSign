@@ -19,8 +19,13 @@ const WINDOW_OPTIONS = [
   { label: 'Last year', value: 365 },
 ]
 
+// Land on downtown Austin with data already on the map, rather than a blank
+// slate that asks the user to do something before it shows its worth. They
+// search their own address or hit the locate button from there.
+const DEFAULT_LOCATION: AddressMatch = { label: 'Downtown Austin', lat: 30.2672, lng: -97.7431 }
+
 export default function App() {
-  const [location, setLocation] = useState<AddressMatch | null>(null)
+  const [location, setLocation] = useState<AddressMatch | null>(DEFAULT_LOCATION)
   const [radius, setRadius] = useState(1609)
   const [days, setDays] = useState(180)
   const [activeId, setActiveId] = useState<string | null>(null)
