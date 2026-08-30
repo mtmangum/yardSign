@@ -1,11 +1,10 @@
 # Yard Sign: current state
 
-Last updated: 2026-08-30. **Deployed and live** at
+Last updated: 2026-08-30. **Deployed, live, and fully working** at
 https://yardsign-523.netlify.app (auto-deploys from `main`). Backend
-provisioned, loaded, fully geocoded; list + search + `/api/*` verified in a
-browser against the live site. **One thing broken in prod:** the basemap tiles
-401 because `VITE_STADIA_API_KEY` is not set yet — markers render on a blank
-field. Set the key and redeploy to fix.
+provisioned, loaded, fully geocoded; the whole flow — search, list, map with the
+Stadia basemap, color-coded markers — is browser-verified against the live site,
+light and dark. Only thing left before it's shippable: a domain.
 
 ## Infrastructure (provisioned 2026-08-30)
 
@@ -17,7 +16,7 @@ All under Matt Mangum's personal accounts.
 | Supabase dashboard | https://supabase.com/dashboard/project/ohdzlznzyrvctxogbhch |
 | Netlify site | `yardsign-523` (`yardsign` / `yardsign-city` subdomains were taken), id `55c34cfb-0863-4a24-bb00-5bebd65bf338` |
 | Live URL | https://yardsign-523.netlify.app — GitHub repo connected, push to `main` auto-builds |
-| Netlify env | `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `IMPORT_SECRET`, `IMPORT_WINDOW_MONTHS` set. **`VITE_STADIA_API_KEY` missing** (basemap 401s until set + redeploy) |
+| Netlify env | `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `IMPORT_SECRET`, `IMPORT_WINDOW_MONTHS`, `VITE_STADIA_API_KEY` all set. Stadia key is domain-restricted in the Stadia dashboard (localhost + `yardsign-523.netlify.app` + `yardsign.city`) |
 | GitHub | `github.com/mtmangum/yardSign` (public), `main` |
 | Migration state | `202608300001` + `202608300002` (permit_class in `permits_near()`) applied |
 | `permits` rows | 84,521, kept fresh by the daily incremental import (07:00 UTC cron) |
@@ -212,19 +211,17 @@ near-identical desaturated equivalent.
 
 ## Next steps, in order
 
-1. **Stadia key** — register a free key at stadiamaps.com, restrict it to
-   `localhost` + `yardsign-523.netlify.app` + `yardsign.city`, then
-   `netlify env:set VITE_STADIA_API_KEY …` and redeploy. Fixes the blank map.
-2. **Domain** — register `yardsign.city`, point it at the Netlify site.
-3. **Alerts / subscriptions** — the retention mechanic. Needs a `subscriptions`
+1. **Domain** — register `yardsign.city`, add it in the Netlify site's domain
+   settings, point DNS at Netlify. The Stadia key already allows it.
+2. **Alerts / subscriptions** — the retention mechanic. Needs a `subscriptions`
    table (email, lat/lng, radius, filters, verification token, last-sent
-   watermark) and a scheduled diff.
-4. Smaller: the deferred per-kind chip row in the count bar (`docs/restyle.md`
+   watermark), an email provider, a double-opt-in flow, and a scheduled diff.
+3. Smaller: the deferred per-kind chip row in the count bar (`docs/restyle.md`
    §5, needs JSX); the TCAD parcel join for the 21% Census `no_match` gap.
 
-Done 2026-08-30, after deploy: **restyle applied** (`a966b19`, CSS-only subset of
-`docs/restyle.md`); **`permitKind()` keys the demolition bucket on `permit_class`**
-(migration `202608300002`, `acc4543`).
+Done 2026-08-30, after deploy: **restyle applied** (`a966b19`); **`permitKind()`
+keys demolition on `permit_class`** (migration `202608300002`, `acc4543`);
+**Stadia key set, live map working** (`VITE_STADIA_API_KEY`).
 
 ## Watch after the laptop closes
 
