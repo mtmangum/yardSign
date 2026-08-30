@@ -216,16 +216,17 @@ near-identical desaturated equivalent.
 1. **Stadia key** — register a free key at stadiamaps.com, restrict it to
    `localhost` + `yardsign-523.netlify.app` + `yardsign.city`, then
    `netlify env:set VITE_STADIA_API_KEY …` and redeploy. Fixes the blank map.
-2. **Restyle** — rewrite `global.css` per `docs/restyle.md` (CSS-only subset;
-   fonts via a Google Fonts `<link>` in `index.html` — decided). Reconcile the
-   `KIND_COLOR` object in `PermitMap.tsx`. See the review notes in that file's
-   git history / the restyle discussion.
-3. **Domain** — register `yardsign.city`, point it at the Netlify site.
-4. **`permit_class` migration** — add it to `permits_near()`'s return so
+2. **Domain** — register `yardsign.city`, point it at the Netlify site.
+3. **`permit_class` migration** — add it to `permits_near()`'s return so
    `permitKind()` can key on the structural demolition classes.
-5. **Alerts / subscriptions** — the retention mechanic. Needs a `subscriptions`
+4. **Alerts / subscriptions** — the retention mechanic. Needs a `subscriptions`
    table (email, lat/lng, radius, filters, verification token, last-sent
    watermark) and a scheduled diff.
+
+Done 2026-08-30: **restyle applied** (`a966b19`, CSS-only subset of
+`docs/restyle.md`) — flat/near-mono, Archivo + IBM Plex Mono via a Google Fonts
+`<link>`, one accent over an ink-to-pale kind ramp. Deferred: the per-kind chip
+row in the count bar (needs JSX).
 
 ## Watch after the laptop closes
 

@@ -1,8 +1,19 @@
 # Yard Sign: visual restyle
 
-Last updated: 2026-08-30. Spec only — not yet applied to `src/styles/global.css`.
+Last updated: 2026-08-30. **Applied** in commit `a966b19` (the CSS-only subset).
+`src/styles/global.css` rewritten, `index.html` gets a Google Fonts `<link>` for
+Archivo + IBM Plex Mono, `PermitMap.tsx` `KIND_COLOR` updated to match.
 
-Mockups: `Yard Sign Restyle.dc.html` (first run, results, mobile).
+Done vs deferred:
+
+- **Done:** all five token/rule/type decisions below, dark-mode amendments,
+  `:focus-visible`, the `.permit__work` filled tag. Plus the legend and map
+  popups pinned light (they float on the always-light basemap). Markers got a
+  white stroke and demolition markers a larger radius (part of §4).
+- **Deferred (needs JSX, out of the stated scope):** §5's per-kind chip row in
+  `.results__count` — the count is mono now but still one `{n} permits` line.
+
+Mockups: `Yard Sign Restyle.html` (first run, results, mobile).
 
 ## Scope
 
