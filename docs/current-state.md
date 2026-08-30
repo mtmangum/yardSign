@@ -19,7 +19,7 @@ All under Matt Mangum's personal accounts.
 | Live URL | https://yardsign-523.netlify.app — GitHub repo connected, push to `main` auto-builds |
 | Netlify env | `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `IMPORT_SECRET`, `IMPORT_WINDOW_MONTHS` set. **`VITE_STADIA_API_KEY` missing** (basemap 401s until set + redeploy) |
 | GitHub | `github.com/mtmangum/yardSign` (public), `main` |
-| Migration state | `202608300001_initial_schema.sql` applied; `supabase migration list` clean |
+| Migration state | `202608300001` + `202608300002` (permit_class in `permits_near()`) applied |
 | `permits` rows | 84,521, kept fresh by the daily incremental import (07:00 UTC cron) |
 | Geocoded | 66,734 `matched` (79%), 17,787 `no_match` (21%), 0 `pending`, 0 `failed` |
 | Basemap | Stadia Maps "Alidade Smooth" (was CARTO Voyager — CARTO now watermarks keyless tiles) |
@@ -125,7 +125,10 @@ daily incremental.
 
 ## Schema
 
-`supabase/migrations/202608300001_initial_schema.sql`.
+`supabase/migrations/` — `202608300001_initial_schema.sql`, then
+`202608300002_permits_near_permit_class.sql` (adds `permit_class` to the
+`permits_near()` output so `permitKind()` can key the demolition bucket on the
+structural classes).
 
 - `permits` — one row per `(city_code, permit_number)`, with the raw Socrata row
   kept in `source_payload` so re-deriving a column never requires a re-import.
@@ -170,16 +173,12 @@ near-identical desaturated equivalent.
   no env vars set on Netlify (`SUPABASE_URL`, `SUPABASE_SECRET_KEY`,
   `IMPORT_SECRET`, `VITE_STADIA_API_KEY`); the daily import is not scheduled
   anywhere real.
-- The front end has been exercised only through the API (`curl` against
-  `netlify dev`). Nobody has watched the map paint markers in a browser.
+- The front end (restyle + `permit_class`) is browser-verified against
+  `netlify dev`, light and dark; the deployed site still needs the Stadia key
+  before its map is worth looking at.
 - Domain not registered; no Stadia API key yet.
 - 21% of permits are `no_match` from the Census geocoder and will not appear on
   the map until the TCAD parcel join exists.
-- `permit_class` (e.g. `R- 645 Demolition One Family Homes`) is stored on the
-  table but not returned by `permits_near()`, so `permitKind()` only sees
-  `work_class`. Adding `permit_class` to the SQL function's return would let the
-  demolition bucket key on the structural demo classes instead of a single
-  free-text value. Now needs a follow-up migration (initial schema is applied).
 - Test `.mts` files live in `netlify/functions/_tests/` (underscore prefix) so
   Netlify does not try to deploy them as functions.
 
@@ -217,16 +216,15 @@ near-identical desaturated equivalent.
    `localhost` + `yardsign-523.netlify.app` + `yardsign.city`, then
    `netlify env:set VITE_STADIA_API_KEY …` and redeploy. Fixes the blank map.
 2. **Domain** — register `yardsign.city`, point it at the Netlify site.
-3. **`permit_class` migration** — add it to `permits_near()`'s return so
-   `permitKind()` can key on the structural demolition classes.
-4. **Alerts / subscriptions** — the retention mechanic. Needs a `subscriptions`
+3. **Alerts / subscriptions** — the retention mechanic. Needs a `subscriptions`
    table (email, lat/lng, radius, filters, verification token, last-sent
    watermark) and a scheduled diff.
+4. Smaller: the deferred per-kind chip row in the count bar (`docs/restyle.md`
+   §5, needs JSX); the TCAD parcel join for the 21% Census `no_match` gap.
 
-Done 2026-08-30: **restyle applied** (`a966b19`, CSS-only subset of
-`docs/restyle.md`) — flat/near-mono, Archivo + IBM Plex Mono via a Google Fonts
-`<link>`, one accent over an ink-to-pale kind ramp. Deferred: the per-kind chip
-row in the count bar (needs JSX).
+Done 2026-08-30, after deploy: **restyle applied** (`a966b19`, CSS-only subset of
+`docs/restyle.md`); **`permitKind()` keys the demolition bucket on `permit_class`**
+(migration `202608300002`, `acc4543`).
 
 ## Watch after the laptop closes
 
