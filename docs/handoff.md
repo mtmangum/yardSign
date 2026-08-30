@@ -73,11 +73,12 @@ Expect step 4 to be the slow one. See the batch-geocoder note in
 
 ## Landmines specific to this code
 
-- **`permitKind()` in `src/components/PermitList.tsx` is a guess.** It buckets
-  free-text `work_class` values by substring (`demolition`, `new`, `remodel`).
-  Nobody has looked at the actual distinct values in the feed. Run a
-  `$select=work_class&$group=work_class` query against Socrata and fix the
-  mapping before trusting the map colors or any future alert rules.
+- **`permitKind()` in `src/components/PermitList.tsx`** was rewritten 2026-08-30
+  against a real `$group=work_class` query: an exact-match table for every value
+  in the trailing-18-month feed, with substring heuristics only as a fallback for
+  unseen values. Covered by `src/components/PermitList.test.ts`. The remaining
+  weakness is that only `work_class` reaches the browser; see the `permit_class`
+  note in `current-state.md`.
 - **The importer's 18-month window is arbitrary.** `IMPORT_WINDOW_MONTHS`
   controls it. Widening it multiplies the geocoding cost linearly.
 - **The upsert deduplicates in memory before sending.** Postgres rejects an

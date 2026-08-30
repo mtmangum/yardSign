@@ -97,18 +97,28 @@ physical notice sign.
 
 ## Known gaps
 
-- No tests yet. The importer's field mapping and `permitKind()` are the two
-  places worth covering first.
 - No alerts, subscriptions, or email. That is the retention mechanic and the
   reason this beats a one-off lookup, so it should not wait long.
-- `permitKind()` classifies on substring matches against free-text work classes.
-  It has not been checked against the real distinct values in the feed.
 - No deploy. No Netlify site, no Supabase project provisioned.
 - Domain not registered.
+- `permit_class` (e.g. `R- 645 Demolition One Family Homes`) is stored on the
+  table but not returned by `permits_near()`, so `permitKind()` only sees
+  `work_class`. Adding `permit_class` to the SQL function's return would let the
+  demolition bucket key on the structural demo classes instead of a single
+  free-text value. Cheap to do now, before the migration is first applied.
+
+## Tests
+
+`npm test` runs `vitest`. Current coverage:
+
+- `permitKind()` against every distinct `work_class` value in the trailing-18-
+  month feed (checked 2026-08-30).
+- The importer's `toNumber` / `toInteger` / `toDate` coercers, `chunks`,
+  `dedupeByPermitNumber`, and the `toPermitRecord` field mapping (extracted as a
+  pure, exported function so it can be tested without Supabase).
 
 ## Next steps, in order
 
 1. Provision Supabase, run the migration, register a Netlify site.
 2. Run the importer once, then the geocode backfill (consider batch first).
-3. Sanity-check `permitKind()` against the actual distinct `work_class` values.
-4. Ship the radius search, then add subscriptions.
+3. Ship the radius search, then add subscriptions.

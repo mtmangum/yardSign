@@ -5,7 +5,7 @@ import { supabaseRequest } from './_shared/supabase.mts'
 const sourceUrl = 'https://data.austintexas.gov/resource/3syk-w9eu.json'
 const sourceName = 'City of Austin Issued Construction Permits'
 
-interface AustinPermitRow {
+export interface AustinPermitRow {
   permit_number: string
   permittype?: string
   permit_type_desc?: string
@@ -31,22 +31,64 @@ interface AustinPermitRow {
   link?: { url?: string }
 }
 
-const chunks = <T,>(values: T[], size = 500) =>
+export const chunks = <T,>(values: T[], size = 500) =>
   Array.from({ length: Math.ceil(values.length / size) }, (_, index) =>
     values.slice(index * size, (index + 1) * size))
 
-const toNumber = (value?: string) => {
+export const toNumber = (value?: string) => {
   if (value === undefined || value === null || value === '') return null
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : null
 }
 
-const toInteger = (value?: string) => {
+export const toInteger = (value?: string) => {
   const parsed = toNumber(value)
   return parsed === null ? null : Math.trunc(parsed)
 }
 
-const toDate = (value?: string) => (value ? value.slice(0, 10) : null)
+export const toDate = (value?: string) => (value ? value.slice(0, 10) : null)
+
+// One Socrata row -> one `permits` table record. Pure and exported so the field
+// mapping can be tested without standing up Supabase. `city_code` is hard-wired
+// to 'AUS' because this importer only ever pulls the City of Austin feed.
+export function toPermitRecord(row: AustinPermitRow, sourceUpdatedAt: string) {
+  return {
+    city_code: 'AUS',
+    permit_number: row.permit_number,
+    project_id: row.project_id ?? null,
+    master_permit_number: row.masterpermitnum ?? null,
+    tcad_id: row.tcad_id ?? null,
+    permit_type: row.permittype ?? null,
+    permit_type_desc: row.permit_type_desc ?? null,
+    permit_class: row.permit_class ?? null,
+    permit_class_mapped: row.permit_class_mapped ?? null,
+    work_class: row.work_class ?? null,
+    description: row.description ?? null,
+    address: row.original_address1 ?? row.permit_location ?? null,
+    zip_code: row.original_zip ?? null,
+    council_district: toInteger(row.council_district),
+    applied_date: toDate(row.applieddate),
+    issue_date: toDate(row.issue_date),
+    status_current: row.status_current ?? null,
+    status_date: toDate(row.statusdate),
+    total_job_valuation: toNumber(row.total_job_valuation),
+    total_new_add_sqft: toNumber(row.total_new_add_sqft),
+    housing_units: toInteger(row.housing_units),
+    number_of_floors: toInteger(row.number_of_floors),
+    source_url: row.link?.url ?? null,
+    source_payload: row,
+    source_updated_at: sourceUpdatedAt,
+  }
+}
+
+// Collapse repeated permit numbers, keeping the last occurrence. A single
+// upsert statement cannot touch the same conflict target twice, and the Austin
+// feed can repeat a permit number within one pull.
+export function dedupeByPermitNumber(rows: AustinPermitRow[]) {
+  const latestByPermit = new Map<string, AustinPermitRow>()
+  for (const row of rows) latestByPermit.set(row.permit_number, row)
+  return [...latestByPermit.values()]
+}
 
 function importWindowStart(months: number) {
   const start = new Date()
@@ -81,42 +123,13 @@ export default async () => {
     const rows = (await fetchPermitRows(months)).filter((row) => row.permit_number)
     console.log(`Austin permit import fetched ${rows.length} permits from the last ${months} months`)
 
-    // Deduplicate inside the batch: a single upsert cannot touch the same
-    // conflict target twice, and the feed can repeat a permit number.
-    const latestByPermit = new Map<string, AustinPermitRow>()
-    for (const row of rows) latestByPermit.set(row.permit_number, row)
+    const deduped = dedupeByPermitNumber(rows)
 
-    for (const batch of chunks([...latestByPermit.values()])) {
+    for (const batch of chunks(deduped)) {
       await supabaseRequest('permits?on_conflict=city_code,permit_number', {
         method: 'POST',
         headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-        body: JSON.stringify(batch.map((row) => ({
-          city_code: 'AUS',
-          permit_number: row.permit_number,
-          project_id: row.project_id ?? null,
-          master_permit_number: row.masterpermitnum ?? null,
-          tcad_id: row.tcad_id ?? null,
-          permit_type: row.permittype ?? null,
-          permit_type_desc: row.permit_type_desc ?? null,
-          permit_class: row.permit_class ?? null,
-          permit_class_mapped: row.permit_class_mapped ?? null,
-          work_class: row.work_class ?? null,
-          description: row.description ?? null,
-          address: row.original_address1 ?? row.permit_location ?? null,
-          zip_code: row.original_zip ?? null,
-          council_district: toInteger(row.council_district),
-          applied_date: toDate(row.applieddate),
-          issue_date: toDate(row.issue_date),
-          status_current: row.status_current ?? null,
-          status_date: toDate(row.statusdate),
-          total_job_valuation: toNumber(row.total_job_valuation),
-          total_new_add_sqft: toNumber(row.total_new_add_sqft),
-          housing_units: toInteger(row.housing_units),
-          number_of_floors: toInteger(row.number_of_floors),
-          source_url: row.link?.url ?? null,
-          source_payload: row,
-          source_updated_at: startedAt,
-        }))),
+        body: JSON.stringify(batch.map((row) => toPermitRecord(row, startedAt))),
       })
     }
 
@@ -126,13 +139,13 @@ export default async () => {
         source_name: sourceName,
         source_url: sourceUrl,
         retrieved_at: startedAt,
-        row_count: latestByPermit.size,
+        row_count: deduped.length,
         status: 'success',
       }),
     })
 
-    console.log(`Austin permit import completed: ${latestByPermit.size} permits upserted`)
-    return Response.json({ fetchedRows: rows.length, upsertedPermits: latestByPermit.size })
+    console.log(`Austin permit import completed: ${deduped.length} permits upserted`)
+    return Response.json({ fetchedRows: rows.length, upsertedPermits: deduped.length })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Import failed'
     console.error(`Austin permit import failed: ${message}`)
