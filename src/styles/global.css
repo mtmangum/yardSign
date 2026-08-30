@@ -268,6 +268,43 @@ button, input, select { font: inherit; color: inherit; }
 .app__map { position: relative; }
 .app__map .leaflet-container { width: 100%; height: 100%; background: var(--paper); }
 
+/* "Search from my location" — sits under the Leaflet zoom control, styled to
+   match it and the legend (light, since it is on the always-light basemap). */
+.map__locate {
+  position: absolute;
+  left: 10px;
+  top: 80px;
+  z-index: 500;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: #ffffff;
+  color: #201e1d;
+  border: 2px solid #201e1d;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.map__locate:hover { background: var(--notice); color: #ffffff; }
+.map__locate:disabled { cursor: progress; opacity: 0.6; }
+
+.map__geo-error {
+  position: absolute;
+  left: 50%;
+  top: 12px;
+  transform: translateX(-50%);
+  z-index: 500;
+  margin: 0;
+  padding: 6px 12px;
+  background: #ffffff;
+  color: var(--notice);
+  border: 2px solid var(--notice);
+  font-size: 12px;
+  font-weight: 600;
+}
+
 /* The legend and popups sit on the always-light basemap, so they stay light in
    both themes rather than following prefers-color-scheme. */
 .map__legend {

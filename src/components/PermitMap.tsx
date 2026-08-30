@@ -1,7 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { CircleMarker, MapContainer, Popup, TileLayer, Circle, useMap } from 'react-leaflet'
 import type { Permit } from '../api/permits'
 import { permitKind } from './PermitList'
+
+// Matches the /api/permits guard, so we reject an off-Austin fix before the
+// request rather than after a 400.
+const inAustin = (lat: number, lng: number) => lat >= 29.5 && lat <= 31 && lng >= -98.5 && lng <= -97
 
 // Keep in sync with the --demolition/--new-build/--remodel/--other tokens in
 // global.css. Static (not read from CSS) because Leaflet paints to canvas; the
@@ -32,13 +36,61 @@ interface PermitMapProps {
   permits: Permit[]
   activeId: string | null
   onHover: (id: string | null) => void
+  onLocate: (coords: { lat: number; lng: number }) => void
 }
 
 const AUSTIN_CENTER: [number, number] = [30.2672, -97.7431]
 
-export function PermitMap({ center, radius, permits, activeId, onHover }: PermitMapProps) {
+export function PermitMap({ center, radius, permits, activeId, onHover, onLocate }: PermitMapProps) {
+  const [locating, setLocating] = useState(false)
+  const [geoError, setGeoError] = useState<string | null>(null)
+
+  const handleLocate = () => {
+    if (!navigator.geolocation) {
+      setGeoError('This browser cannot share a location.')
+      return
+    }
+    setLocating(true)
+    setGeoError(null)
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setLocating(false)
+        if (!inAustin(coords.latitude, coords.longitude)) {
+          setGeoError('You seem to be outside the Austin area.')
+          return
+        }
+        onLocate({ lat: coords.latitude, lng: coords.longitude })
+      },
+      (error) => {
+        setLocating(false)
+        setGeoError(
+          error.code === error.PERMISSION_DENIED
+            ? 'Location access was denied.'
+            : 'Could not get your location.',
+        )
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    )
+  }
+
   return (
     <div className="app__map">
+      <button
+        type="button"
+        className="map__locate"
+        onClick={handleLocate}
+        disabled={locating}
+        aria-label="Search from my location"
+        title="Search from my location"
+      >
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <circle cx="12" cy="12" r="3.2" fill="currentColor" />
+          <circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" strokeWidth="2" />
+          <path d="M12 1v4M12 19v4M1 12h4M19 12h4" stroke="currentColor" strokeWidth="2" strokeLinecap="square" />
+        </svg>
+      </button>
+      {geoError && <p className="map__geo-error" role="alert">{geoError}</p>}
+
       <MapContainer center={AUSTIN_CENTER} zoom={12} scrollWheelZoom style={{ height: '100%' }}>
         {/*
           Stadia Maps "Alidade Smooth": a desaturated basemap so the permit

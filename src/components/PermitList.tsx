@@ -98,7 +98,12 @@ interface PermitListProps {
 
 export function PermitList({ permits, loading, error, hasLocation, activeId, onHover, onSelect }: PermitListProps) {
   if (!hasLocation) {
-    return <p className="results__status">Enter an address to see what has been permitted nearby.</p>
+    return (
+      <p className="results__status">
+        Enter an address, or tap the crosshair on the map, to see what has been
+        permitted nearby.
+      </p>
+    )
   }
   if (loading) return <p className="results__status">Checking the permit feed…</p>
   if (error) return <p className="results__status">{error}</p>

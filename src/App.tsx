@@ -108,6 +108,7 @@ export default function App() {
         permits={permits}
         activeId={activeId}
         onHover={setActiveId}
+        onLocate={({ lat, lng }) => setLocation({ label: 'Current location', lat, lng })}
       />
     </div>
   )
