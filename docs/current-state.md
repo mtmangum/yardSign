@@ -262,7 +262,10 @@ the existing 1/4, 1/2, 1, or 2 mile choice before issuing one new query.
 Command-click on macOS or Control-click on Windows/Linux moves the search center
 to that map coordinate without panning the basemap, so the circle visibly moves;
 while the modifier is held, a red ghost perimeter follows the pointer to preview
-the new area. Ordinary map clicks retain their normal behavior. Radius/location
+the new area. On touch screens, pressing and holding empty map space for 400 ms
+activates the same ghost perimeter with brief haptic feedback where supported;
+dragging positions it and release applies the new center. Moving before the hold
+threshold cancels the gesture so normal map panning remains immediate. Ordinary map clicks retain their normal behavior. Radius/location
 refreshes clear stale dots immediately and show a compact updating state until
 the new spatial sample arrives, rather than leaving an apparently unchanged map.
 Clicking a map marker persistently highlights and scrolls its permit into view in

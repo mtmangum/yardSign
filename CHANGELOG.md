@@ -29,6 +29,9 @@
 - Added Command-click on macOS and Control-click on Windows/Linux to reposition
   the search circle without moving the basemap.
 - Added an animation-frame-throttled ghost perimeter while previewing a new center.
+- Added touch repositioning: press and hold empty map space for 400 ms, drag the
+  ghost perimeter into place, and release to refresh from the new center. Quick
+  swipes continue to pan the map normally.
 - Clear stale markers and show an updating state while a new spatial sample loads.
 - Fit the search perimeter tightly to the mobile viewport, with its horizontal
   edges meeting the screen rather than leaving misleading map space around it.

@@ -488,6 +488,8 @@ button, input, select { font: inherit; color: inherit; }
   pointer-events: none;
 }
 
+.map__touch-hint { display: none; }
+
 /* The legend and popups sit on the always-light basemap, so they stay light in
    both themes rather than following prefers-color-scheme. */
 .map__legend {
@@ -583,6 +585,25 @@ button, input, select { font: inherit; color: inherit; }
   }
   .map__move-hint { display: none; }
   .map__geo-error { top: 62px; }
+}
+
+@media (max-width: 860px) and (hover: none) and (pointer: coarse) {
+  .map__touch-hint {
+    position: absolute;
+    left: 50%;
+    bottom: 118px;
+    z-index: 500;
+    display: block;
+    transform: translateX(-50%);
+    padding: 7px 10px;
+    background: rgba(255, 255, 255, 0.94);
+    color: #6b6660;
+    border: 1px solid rgba(32, 30, 29, 0.3);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
 }
 
 @media (max-width: 420px) {
