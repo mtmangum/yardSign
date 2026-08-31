@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { Permit } from '../api/permits'
 
 export type PermitKind = 'demolition' | 'new' | 'remodel' | 'other'
@@ -94,13 +95,21 @@ interface PermitListProps {
   error: string | null
   hasLocation: boolean
   activeId: string | null
+  focusId: string | null
   onHover: (id: string | null) => void
   onSelect: (permit: Permit) => void
 }
 
 const n = (value: number) => value.toLocaleString('en-US')
 
-export function PermitList({ permits, mappedCount, total, loading, error, hasLocation, activeId, onHover, onSelect }: PermitListProps) {
+export function PermitList({ permits, mappedCount, total, loading, error, hasLocation, activeId, focusId, onHover, onSelect }: PermitListProps) {
+  const focusedRow = useRef<HTMLButtonElement | null>(null)
+
+  useEffect(() => {
+    if (!focusId || !focusedRow.current) return
+    focusedRow.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [focusId, permits])
+
   if (!hasLocation) {
     return (
       <p className="results__status">
@@ -149,6 +158,7 @@ export function PermitList({ permits, mappedCount, total, loading, error, hasLoc
         return (
           <button
             type="button"
+            ref={focusId === permit.id ? focusedRow : undefined}
             key={permit.id}
             className="permit"
             data-kind={permitKind(permit)}

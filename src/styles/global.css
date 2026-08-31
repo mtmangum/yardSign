@@ -371,6 +371,19 @@ button, input, select { font: inherit; color: inherit; }
   transform: scale(1.12);
 }
 
+.radius-tooltip {
+  padding: 7px 9px;
+  border: 1px solid #201e1d;
+  border-radius: 0;
+  box-shadow: none;
+  font-family: var(--font-sans);
+}
+
+.radius-tooltip strong,
+.radius-tooltip span { display: block; }
+.radius-tooltip strong { color: #201e1d; font-size: 11px; }
+.radius-tooltip span { margin-top: 2px; color: #6b6660; font-size: 10px; }
+
 /* "Search from my location" — sits under the Leaflet zoom control, styled to
    match it and the legend (light, since it is on the always-light basemap). */
 .map__locate {
@@ -460,9 +473,47 @@ button, input, select { font: inherit; color: inherit; }
 .map__legend-row { display: flex; align-items: center; gap: 7px; }
 .map__legend-dot { width: 9px; height: 9px; flex: none; outline: 1px solid rgba(32, 30, 29, 0.25); }
 
-.map__popup h3 { margin: 0 0 4px; font-size: 13px; color: #201e1d; }
-.map__popup p { margin: 0 0 4px; font-size: 12px; color: #6b6660; }
-.map__popup a { color: var(--notice); font-size: 12px; }
+.app__map .leaflet-popup-content { margin: 0; width: 400px !important; }
+.app__map .leaflet-popup-content-wrapper { padding: 0; border-radius: 0; overflow: hidden; }
+
+.map__popup { padding: 14px 30px 13px 20px; color: #201e1d; }
+.map__popup-eyebrow { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.map__popup-kind {
+  display: inline-block;
+  min-width: 0;
+  max-width: 240px;
+  padding: 3px 6px;
+  background: #e8e5e1;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+.map__popup[data-kind="demolition"] .map__popup-kind { background: #ec3013; color: #ffffff; }
+.map__popup-distance { padding-top: 2px; color: #6b6660; font-family: var(--font-mono); font-size: 9px; white-space: nowrap; }
+.map__popup h3 { margin: 11px 0 0; font-size: 16px; letter-spacing: -0.02em; line-height: 1.2; }
+.map__popup-description {
+  margin: 7px 0 0;
+  color: #6b6660;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.map__popup-meta { display: flex; flex-wrap: wrap; gap: 5px 10px; margin-top: 10px; color: #6b6660; font-family: var(--font-mono); font-size: 9px; }
+.map__popup-meta span + span::before { content: '·'; margin-right: 10px; }
+.map__popup-link {
+  display: block;
+  margin: 13px -30px -13px -20px;
+  padding: 10px 20px;
+  background: #201e1d;
+  color: #ffffff !important;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.map__popup-link:hover { background: #ec3013; }
 
 @media (max-width: 860px) {
   .app__panel {
@@ -484,4 +535,9 @@ button, input, select { font: inherit; color: inherit; }
   .segmented__option { font-size: 10px; }
   .results__kinds { gap: 8px; }
   .kind-count span { display: none; }
+  .app__map .leaflet-popup-content,
+  .app__map .leaflet-popup-content-wrapper {
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px);
+  }
 }

@@ -4,8 +4,7 @@ Last updated: 2026-08-30. **Deployed, live, and fully working** at
 https://yardsign-523.netlify.app. Backend provisioned, loaded, fully geocoded;
 the whole flow — opens on downtown Austin with data, search or locate button,
 list, map with the Stadia basemap, color-coded markers, "N of M closest first"
-count — is browser-verified against the live site, light and dark. Only thing
-left before it is shippable: a domain.
+count — is browser-verified against the live site, light and dark.
 
 **Deploys are manual now** (a push to `main` still triggers a Netlify build via
 the connected repo — so do not push casually). Deploy by pushing `main` when a
@@ -20,14 +19,14 @@ All under Matt Mangum's personal accounts.
 | Supabase project | `yardsign-production`, ref `ohdzlznzyrvctxogbhch`, region `ca-central-1` |
 | Supabase dashboard | https://supabase.com/dashboard/project/ohdzlznzyrvctxogbhch |
 | Netlify site | `yardsign-523` (`yardsign` / `yardsign-city` subdomains were taken), id `55c34cfb-0863-4a24-bb00-5bebd65bf338` |
-| Live URL | https://yardsign-523.netlify.app — GitHub repo connected; a push to `main` builds and publishes (kept manual on purpose) |
+| Live URL | https://yardsign.city (primary; DNS/TLS propagating after registration) · https://yardsign-523.netlify.app remains available — GitHub repo connected; a push to `main` builds and publishes |
 | Netlify env | `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `IMPORT_SECRET`, `IMPORT_WINDOW_MONTHS`, `VITE_STADIA_API_KEY` all set. Stadia key is domain-restricted in the Stadia dashboard (localhost + `yardsign-523.netlify.app` + `yardsign.city`) |
 | GitHub | `github.com/mtmangum/yardSign` (public), `main` — local may be ahead of `origin`; unpushed commits are not yet deployed |
 | Migrations applied | `202608300001` (initial), `202608300002` (permit_class in `permits_near()`), `202608300003` (`permits_near_count()`), `202608300004` (grid-distributed map sample) |
 | `permits` rows | 84,521, kept fresh by the daily incremental import (07:00 UTC cron) |
 | Geocoded | 66,734 `matched` (79%), 17,787 `no_match` (21%), 0 `pending`, 0 `failed` |
 | Basemap | Stadia Maps "Alidade Smooth" (was CARTO Voyager — CARTO now watermarks keyless tiles) |
-| Domain | `yardsign.city` still not registered |
+| Domain | `yardsign.city` registered through Netlify on 2026-08-30; primary domain, Netlify DNS propagating, `www` redirects to apex, TLS pending |
 
 **`.env` uses the legacy `service_role` JWT, not an `sb_secret_` key.** The
 new-format API keys return 401 on this project until they are enabled in the
@@ -192,8 +191,8 @@ near-identical desaturated equivalent.
 
 - No alerts, subscriptions, or email. That is the retention mechanic and the
   reason this beats a one-off lookup, so it should not wait long.
-- **Domain not registered.** `yardsign.city` still needs buying and pointing at
-  the Netlify site.
+- **Domain propagation pending.** `yardsign.city` is registered and primary;
+  public DNS and the automatic Let's Encrypt certificate are still provisioning.
 - **Local `main` may be ahead of `origin`** — deploys are manual, so unpushed
   commits are not live. Migration `202608300003` is applied to the DB, but the
   code that calls `permits_near_count()` (the `total` field) ships only when the
@@ -234,12 +233,10 @@ near-identical desaturated equivalent.
 
 ## Next steps, in order
 
-1. **Domain** — register `yardsign.city`, add it in the Netlify site's domain
-   settings, point DNS at Netlify. The Stadia key already allows it.
-2. **Alerts / subscriptions** — the retention mechanic. Needs a `subscriptions`
+1. **Alerts / subscriptions** — the retention mechanic. Needs a `subscriptions`
    table (email, lat/lng, radius, filters, verification token, last-sent
    watermark), an email provider, a double-opt-in flow, and a scheduled diff.
-3. Smaller: interactive kind filters; the TCAD parcel join for the 21% Census
+2. Smaller: interactive kind filters; the TCAD parcel join for the 21% Census
    `no_match` gap.
 
 Done 2026-08-30, after deploy: **restyle applied** (`a966b19`); **`permitKind()`
@@ -272,6 +269,8 @@ while the modifier is held, a red ghost perimeter follows the pointer to preview
 the new area. Ordinary map clicks retain their normal behavior. Radius/location
 refreshes clear stale dots immediately and show a compact updating state until
 the new spatial sample arrives, rather than leaving an apparently unchanged map.
+Clicking a map marker persistently highlights and scrolls its permit into view in
+the sidebar; a sampled permit outside the closest 500 is temporarily inserted.
 
 ## Watch after the laptop closes
 

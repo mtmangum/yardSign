@@ -28,6 +28,20 @@ const nearestRadiusStep = (meters: number) =>
   RADIUS_STEPS.reduce((closest, step) =>
     Math.abs(step - meters) < Math.abs(closest - meters) ? step : closest)
 
+const formatMapDate = (value: string | null) =>
+  value ? new Date(`${value}T00:00:00`).toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+  }) : null
+
+const formatMapValue = (value: number | null) =>
+  value && value > 0
+    ? new Intl.NumberFormat('en-US', {
+      style: 'currency', currency: 'USD', maximumFractionDigits: 0,
+    }).format(value)
+    : null
+
+const formatMapDistance = (meters: number) => `${(meters / 1609.34).toFixed(2)} mi away`
+
 function RadiusOverlay({
   lat, lng, radius, onRadiusChange,
 }: {
@@ -70,7 +84,10 @@ function RadiusOverlay({
           },
         }}
       >
-        <Tooltip direction="top" offset={[0, -12]}>Drag to resize search area</Tooltip>
+        <Tooltip className="radius-tooltip" direction="top" offset={[0, -12]}>
+          <strong>Resize search area</strong>
+          <span>Drag and release to update</span>
+        </Tooltip>
       </Marker>
     </>
   )
@@ -176,6 +193,7 @@ interface PermitMapProps {
   loading: boolean
   activeId: string | null
   onHover: (id: string | null) => void
+  onSelectPermit: (permit: Permit) => void
   onLocate: () => void
   locating: boolean
   geoError: string | null
@@ -184,7 +202,7 @@ interface PermitMapProps {
 const AUSTIN_CENTER: [number, number] = [30.2672, -97.7431]
 
 export function PermitMap({
-  center, radius, onRadiusChange, onCenterChange, permits, loading, activeId, onHover, onLocate, locating, geoError,
+  center, radius, onRadiusChange, onCenterChange, permits, loading, activeId, onHover, onSelectPermit, onLocate, locating, geoError,
 }: PermitMapProps) {
   const skipNextFit = useRef(false)
 
@@ -259,16 +277,27 @@ export function PermitMap({
               eventHandlers={{
                 mouseover: () => onHover(permit.id),
                 mouseout: () => onHover(null),
+                click: () => onSelectPermit(permit),
               }}
             >
-              <Popup>
-                <div className="map__popup">
+              <Popup minWidth={380} maxWidth={440}>
+                <div className="map__popup" data-kind={kind}>
+                  <div className="map__popup-eyebrow">
+                    <span className="map__popup-kind">
+                      {permit.work_class ?? permit.permit_type_desc ?? 'Permit'}
+                    </span>
+                    <span className="map__popup-distance">{formatMapDistance(permit.distance_m)}</span>
+                  </div>
                   <h3>{permit.address ?? 'Address not recorded'}</h3>
-                  <p>{permit.work_class ?? permit.permit_type_desc}</p>
-                  {permit.description && <p>{permit.description}</p>}
+                  {permit.description && <p className="map__popup-description">{permit.description}</p>}
+                  <div className="map__popup-meta">
+                    {[formatMapDate(permit.issue_date), formatMapValue(permit.total_job_valuation), permit.status_current]
+                      .filter(Boolean)
+                      .map((item) => <span key={item}>{item}</span>)}
+                  </div>
                   {permit.source_url && (
-                    <a href={permit.source_url} target="_blank" rel="noreferrer">
-                      Open in the city permit portal
+                    <a className="map__popup-link" href={permit.source_url} target="_blank" rel="noreferrer">
+                      View city permit <span aria-hidden="true">↗</span>
                     </a>
                   )}
                 </div>

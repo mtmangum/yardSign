@@ -30,7 +30,8 @@ export default function App() {
   const [location, setLocation] = useState<AddressMatch | null>(DEFAULT_LOCATION)
   const [radius, setRadius] = useState(1609)
   const [days, setDays] = useState(180)
-  const [activeId, setActiveId] = useState<string | null>(null)
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [selectedPermit, setSelectedPermit] = useState<Permit | null>(null)
 
   // Memoized so usePermits does not refetch on every unrelated render.
   const query = useMemo<PermitQuery | null>(
@@ -38,7 +39,16 @@ export default function App() {
     [location, radius, days],
   )
   const { permits, mapPermits, total, loading, error } = usePermits(query)
-  const geo = useGeolocate(({ lat, lng }) => setLocation({ label: 'Current location', lat, lng }))
+  const geo = useGeolocate(({ lat, lng }) => {
+    setSelectedPermit(null)
+    setLocation({ label: 'Current location', lat, lng })
+  })
+  const activeId = hoveredId ?? selectedPermit?.id ?? null
+  const listedPermits = useMemo(() => {
+    const closest = permits.slice(0, LIST_LIMIT)
+    if (!selectedPermit || closest.some((permit) => permit.id === selectedPermit.id)) return closest
+    return [selectedPermit, ...closest.slice(0, LIST_LIMIT - 1)]
+  }, [permits, selectedPermit])
 
   const openPermit = (permit: Permit) => {
     if (permit.source_url) window.open(permit.source_url, '_blank', 'noreferrer')
@@ -63,7 +73,10 @@ export default function App() {
 
         <div className="controls">
           <AddressSearch
-            onSelect={setLocation}
+            onSelect={(match) => {
+              setSelectedPermit(null)
+              setLocation(match)
+            }}
             selectedLabel={location?.label ?? null}
             onLocate={geo.locate}
             locating={geo.locating}
@@ -79,7 +92,10 @@ export default function App() {
                   role="radio"
                   aria-checked={radius === option.value}
                   key={option.value}
-                  onClick={() => setRadius(option.value)}
+                  onClick={() => {
+                    setSelectedPermit(null)
+                    setRadius(option.value)
+                  }}
                 >
                   {option.label}
                 </button>
@@ -96,7 +112,10 @@ export default function App() {
                   role="radio"
                   aria-checked={days === option.value}
                   key={option.value}
-                  onClick={() => setDays(option.value)}
+                  onClick={() => {
+                    setSelectedPermit(null)
+                    setDays(option.value)
+                  }}
                 >
                   {option.label.replace('Last ', '')}
                 </button>
@@ -107,14 +126,15 @@ export default function App() {
 
         <div className="results">
           <PermitList
-            permits={permits.slice(0, LIST_LIMIT)}
+            permits={listedPermits}
             mappedCount={mapPermits.length}
             total={total}
             loading={loading}
             error={error}
             hasLocation={Boolean(location)}
             activeId={activeId}
-            onHover={setActiveId}
+            focusId={selectedPermit?.id ?? null}
+            onHover={setHoveredId}
             onSelect={openPermit}
           />
         </div>
@@ -123,12 +143,19 @@ export default function App() {
       <PermitMap
         center={location ? { lat: location.lat, lng: location.lng } : null}
         radius={radius}
-        onRadiusChange={setRadius}
-        onCenterChange={(lat, lng) => setLocation({ label: 'Dropped pin', lat, lng })}
+        onRadiusChange={(nextRadius) => {
+          setSelectedPermit(null)
+          setRadius(nextRadius)
+        }}
+        onCenterChange={(lat, lng) => {
+          setSelectedPermit(null)
+          setLocation({ label: 'Dropped pin', lat, lng })
+        }}
         permits={mapPermits}
         loading={loading}
         activeId={activeId}
-        onHover={setActiveId}
+        onHover={setHoveredId}
+        onSelectPermit={setSelectedPermit}
         onLocate={geo.locate}
         locating={geo.locating}
         geoError={geo.error}

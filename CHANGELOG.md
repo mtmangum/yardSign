@@ -24,7 +24,15 @@
   the search circle without moving the basemap.
 - Added an animation-frame-throttled ghost perimeter while previewing a new center.
 - Clear stale markers and show an updating state while a new spatial sample loads.
+- Clicking a map marker now highlights and scrolls its matching sidebar permit
+  into view, including sampled permits outside the closest-500 list.
+- Reformatted map popups with clearer address, permit type, metadata, description,
+  distance, and city-record hierarchy; refined the radius-handle tooltip. Popup
+  text wraps in full rather than truncating with ellipses, with a wider desktop
+  layout and a viewport-safe mobile width.
 
 ### Operations
 
 - Applied Supabase migration `202608300004_permits_near_map.sql` to production.
+- Registered `yardsign.city` through Netlify, made it the primary production
+  domain, and configured `www.yardsign.city` to redirect to the apex.

@@ -80,10 +80,11 @@ node --env-file=.env -e "
 Backend provisioned (`yardsign-production` on Supabase, `yardsign-523` on
 Netlify), 84,521 permits imported and geocoded, API verified through
 `netlify dev`, and the complete search/map flow deployed at
-https://yardsign-523.netlify.app. Production deploys from `main`; local full-stack
-development runs at http://localhost:8888.
+https://yardsign.city (with https://yardsign-523.netlify.app retained as the
+Netlify subdomain). Production deploys from `main`; local full-stack development
+runs at http://localhost:8888.
 
 ## Not built yet
 
-Alerts and subscriptions, a custom domain, site plan cases, zoning cases, and the
-TCAD parcel join. See `docs/current-state.md`.
+Alerts and subscriptions, site plan cases, zoning cases, and the TCAD parcel
+join. See `docs/current-state.md`.
