@@ -202,9 +202,20 @@ Deliberately not reused: the scoring engine, the canonical-duplicate machinery,
 and the entire UI. Yard Sign has its own visual identity built around the
 physical notice sign.
 
+## Front-end layout
+
+- `src/lib/` — framework-free logic. `permitKind.ts` (the classifier + `KIND_*`
+  maps), `format.ts` (distance / valuation / date), `geo.ts` (`RADIUS_STEPS`,
+  `snapLocation`, `inAustin`, `nearestRadiusStep`).
+- `src/components/map/` — `PermitMap` composes `MoveSearchArea` (⌘-click / touch
+  hold to reposition), `RadiusHandle` (drag to resize), `PermitMarker`
+  (marker + popup), and `mapControls` (`Recenter`, `RefreshMapSize`, `MapLegend`).
+- `src/components/` — `PermitList`, `AddressSearch`.
+- `src/hooks/` — `usePermits`, `useGeolocate`, `useIsNarrow`, `useDebouncedValue`.
+
 ## Basemap
 
-`PermitMap.tsx` loads Stadia Maps "Alidade Smooth" raster tiles. Keyless from
+`src/components/map/PermitMap.tsx` loads Stadia Maps "Alidade Smooth" raster tiles. Keyless from
 `localhost`; **production needs a free, domain-restricted Stadia API key** in
 `VITE_STADIA_API_KEY` (the tile URL appends `?api_key=` when it is set - see
 `src/vite-env.d.ts`). CARTO Voyager was the original pick and was dropped once

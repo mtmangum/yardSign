@@ -2,6 +2,16 @@
 
 ## 2026-08-31
 
+### Internal
+
+- Refactor: `PermitMap.tsx` (429 lines) split into `src/components/map/`
+  (`PermitMap`, `MoveSearchArea`, `RadiusHandle`, `PermitMarker`, `mapControls`).
+  Pure logic moved to `src/lib/` — `permitKind` (was inside `PermitList`, which
+  `PermitMap` imported component-to-component), `format` (one each of distance /
+  valuation / date, replacing six near-duplicates), `geo` (one `RADIUS_STEPS`,
+  `snapLocation`, `inAustin`, `nearestRadiusStep`). New `useIsNarrow` hook
+  replaces render-time `window.innerWidth` reads. No behaviour change.
+
 ### Security
 
 - `permits_needing_geocode` view is now `security_invoker` (migration

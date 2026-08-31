@@ -1,8 +1,5 @@
 import { useState } from 'react'
-
-// Matches the /api/permits guard, so an off-Austin fix is rejected before the
-// request rather than after a 400.
-const inAustin = (lat: number, lng: number) => lat >= 29.5 && lat <= 31 && lng >= -98.5 && lng <= -97
+import { inAustin } from '../lib/geo'
 
 interface Geolocate {
   locate: () => void

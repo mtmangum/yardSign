@@ -1,17 +1,11 @@
 import { useMemo, useState } from 'react'
 import { AddressSearch } from './components/AddressSearch'
 import { PermitList } from './components/PermitList'
-import { PermitMap } from './components/PermitMap'
+import { PermitMap } from './components/map/PermitMap'
 import { usePermits } from './hooks/usePermits'
 import { useGeolocate } from './hooks/useGeolocate'
+import { DEFAULT_RADIUS, RADIUS_CHOICES, snapLocation } from './lib/geo'
 import type { AddressMatch, Permit, PermitQuery } from './api/permits'
-
-const RADIUS_OPTIONS = [
-  { label: '1/4 mile', value: 402 },
-  { label: '1/2 mile', value: 805 },
-  { label: '1 mile', value: 1609 },
-  { label: '2 miles', value: 3219 },
-]
 
 const WINDOW_OPTIONS = [
   { label: 'Last 30 days', value: 30 },
@@ -26,22 +20,10 @@ const WINDOW_OPTIONS = [
 const DEFAULT_LOCATION: AddressMatch = { label: 'Downtown Austin', lat: 30.2672, lng: -97.7431 }
 const LIST_LIMIT = 500
 
-// Snap search coordinates to a ~110 m grid so neighbours checking the same block
-// share one CDN cache entry (and one Supabase query) rather than every distinct
-// address / GPS fix being a cache miss - this is the main lever on egress. It
-// also keeps exact addresses out of the cache key. The map pin and the radius
-// circle use the same snapped point, so nothing visually drifts.
-const snap = (value: number) => Math.round(value * 1000) / 1000
-const snapLocation = (match: AddressMatch): AddressMatch => ({
-  ...match,
-  lat: snap(match.lat),
-  lng: snap(match.lng),
-})
-
 export default function App() {
   const [location, setLocationState] = useState<AddressMatch | null>(snapLocation(DEFAULT_LOCATION))
   const setLocation = (match: AddressMatch) => setLocationState(snapLocation(match))
-  const [radius, setRadius] = useState(1609)
+  const [radius, setRadius] = useState(DEFAULT_RADIUS)
   const [days, setDays] = useState(180)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [selectedPermit, setSelectedPermit] = useState<Permit | null>(null)
@@ -117,7 +99,7 @@ export default function App() {
           <div className="field">
             <span className="field__label" id="radius-label">Radius</span>
             <div className="segmented" role="radiogroup" aria-labelledby="radius-label">
-                {RADIUS_OPTIONS.map((option) => (
+                {RADIUS_CHOICES.map((option) => (
                 <button
                   type="button"
                   className="segmented__option"

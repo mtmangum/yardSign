@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Permit } from '../api/permits'
-import { permitKind } from './PermitList'
+import { permitKind } from './permitKind'
 
 const permit = (overrides: Partial<Permit> = {}): Permit => ({
   id: 'p1',
