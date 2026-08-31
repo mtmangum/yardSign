@@ -271,7 +271,10 @@ Mobile uses explicit Map/List views instead of stacking both surfaces. The fixed
 view switcher preserves context. Selecting a marker stays on the map and opens
 its popup; switching to List afterward scrolls to the selected permit. Popups
 render above the fixed mobile controls, and returning to the map invalidates
-Leaflet's hidden layout size.
+Leaflet's hidden layout size. The selected row quickly aligns below the fixed
+switcher at the top of the List view using a 220 ms scroll. Mobile view, zoom, locate, and popup-close controls
+use touch-friendly targets. The search circle is fitted without horizontal map
+padding on mobile so its perimeter reaches the viewport edges.
 
 ## Watch after the laptop closes
 

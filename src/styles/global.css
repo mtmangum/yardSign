@@ -97,19 +97,20 @@ button, input, select { font: inherit; color: inherit; }
     z-index: 1000;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    width: 136px;
-    padding: 3px;
+    width: 168px;
+    padding: 4px;
     transform: translateX(-50%);
     background: #ffffff;
     border: 2px solid #201e1d;
   }
 
   .mobile-view-switcher button {
-    padding: 7px 10px;
+    min-height: 44px;
+    padding: 10px 14px;
     background: transparent;
     border: 0;
     color: #6b6660;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -562,6 +563,24 @@ button, input, select { font: inherit; color: inherit; }
   .controls { padding: 14px 16px; gap: 12px; }
   .results__summary { padding-inline: 16px; }
   .permit { padding-right: 16px; }
+  .permit { scroll-margin-top: 64px; }
+  .app__map .leaflet-bar a {
+    width: 44px;
+    height: 44px;
+    line-height: 44px;
+    font-size: 24px;
+  }
+  .map__locate {
+    top: 108px;
+    width: 44px;
+    height: 44px;
+  }
+  .app__map .leaflet-popup-close-button {
+    width: 44px !important;
+    height: 44px !important;
+    font-size: 22px !important;
+    line-height: 44px !important;
+  }
   .map__move-hint { display: none; }
   .map__geo-error { top: 62px; }
 }

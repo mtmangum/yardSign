@@ -109,10 +109,12 @@ function Recenter({
     }
     // Fit the search circle rather than a fixed zoom, so changing the radius
     // reframes the map the way a user expects.
+    const lngMeters = 111320 * Math.max(Math.cos(lat * Math.PI / 180), 0.000001)
+    const mobile = map.getSize().x <= 860
     map.fitBounds([
-      [lat - radius / 111320, lng - radius / 88000],
-      [lat + radius / 111320, lng + radius / 88000],
-    ], { padding: [24, 24] })
+      [lat - radius / 111320, lng - radius / lngMeters],
+      [lat + radius / 111320, lng + radius / lngMeters],
+    ], { padding: mobile ? [0, 0] : [24, 24] })
   }, [lat, lng, radius, map, skipNextFit])
   return null
 }
@@ -235,7 +237,7 @@ export function PermitMap({
       </button>
       {geoError && <p className="map__geo-error" role="alert">{geoError}</p>}
 
-      <MapContainer center={AUSTIN_CENTER} zoom={12} scrollWheelZoom preferCanvas style={{ height: '100%' }}>
+      <MapContainer center={AUSTIN_CENTER} zoom={12} zoomSnap={0} scrollWheelZoom preferCanvas style={{ height: '100%' }}>
         <RefreshMapSize active={active} />
         <MoveSearchArea radius={radius} onMove={(lat, lng) => {
           skipNextFit.current = true

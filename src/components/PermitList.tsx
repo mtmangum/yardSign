@@ -103,12 +103,40 @@ interface PermitListProps {
 
 const n = (value: number) => value.toLocaleString('en-US')
 
+const animateScroll = (element: HTMLElement | Window, target: number) => {
+  const start = element instanceof Window ? element.scrollY : element.scrollTop
+  const distance = target - start
+  if (Math.abs(distance) < 1 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    element.scrollTo({ top: target })
+    return () => undefined
+  }
+
+  const started = performance.now()
+  const duration = 220
+  let frame = 0
+  const tick = (now: number) => {
+    const progress = Math.min((now - started) / duration, 1)
+    const eased = 1 - Math.pow(1 - progress, 3)
+    element.scrollTo({ top: start + distance * eased })
+    if (progress < 1) frame = window.requestAnimationFrame(tick)
+  }
+  frame = window.requestAnimationFrame(tick)
+  return () => window.cancelAnimationFrame(frame)
+}
+
 export function PermitList({ permits, mappedCount, total, loading, error, hasLocation, activeId, focusId, focusKey, onHover, onSelect }: PermitListProps) {
   const focusedRow = useRef<HTMLButtonElement | null>(null)
 
   useEffect(() => {
     if (!focusId || !focusedRow.current) return
-    focusedRow.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    const row = focusedRow.current
+    const results = row.closest<HTMLElement>('.results')
+    const mobile = window.matchMedia('(max-width: 860px)').matches
+    if (mobile) {
+      return animateScroll(window, window.scrollY + row.getBoundingClientRect().top - 64)
+    }
+    const summaryHeight = results?.querySelector<HTMLElement>('.results__summary')?.offsetHeight ?? 0
+    return results ? animateScroll(results, row.offsetTop - summaryHeight) : undefined
   }, [focusId, focusKey, permits])
 
   if (!hasLocation) {

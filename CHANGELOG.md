@@ -14,6 +14,9 @@
 - Replaced the stacked mobile layout with explicit Map and List views; marker
   selection stays on the map, switching to List focuses the selected row, and
   returning restores map sizing. Mobile popups render above fixed map controls.
+- Enlarged mobile view, zoom, locate, and popup-close controls to touch-friendly
+  targets; selected permits align at the top when switching to List using a
+  faster, controlled scroll animation.
 
 ### Map
 
@@ -27,6 +30,8 @@
   the search circle without moving the basemap.
 - Added an animation-frame-throttled ghost perimeter while previewing a new center.
 - Clear stale markers and show an updating state while a new spatial sample loads.
+- Fit the search perimeter tightly to the mobile viewport, with its horizontal
+  edges meeting the screen rather than leaving misleading map space around it.
 - Clicking a map marker now highlights and scrolls its matching sidebar permit
   into view, including sampled permits outside the closest-500 list.
 - Reformatted map popups with clearer address, permit type, metadata, description,
