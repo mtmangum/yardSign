@@ -117,6 +117,16 @@ function Recenter({
   return null
 }
 
+function RefreshMapSize({ active }: { active: boolean }) {
+  const map = useMap()
+  useEffect(() => {
+    if (!active) return
+    const frame = window.requestAnimationFrame(() => map.invalidateSize())
+    return () => window.cancelAnimationFrame(frame)
+  }, [active, map])
+  return null
+}
+
 function MoveSearchArea({
   radius, onMove,
 }: {
@@ -191,6 +201,7 @@ interface PermitMapProps {
   onCenterChange: (lat: number, lng: number) => void
   permits: Permit[]
   loading: boolean
+  active: boolean
   activeId: string | null
   onHover: (id: string | null) => void
   onSelectPermit: (permit: Permit) => void
@@ -202,7 +213,7 @@ interface PermitMapProps {
 const AUSTIN_CENTER: [number, number] = [30.2672, -97.7431]
 
 export function PermitMap({
-  center, radius, onRadiusChange, onCenterChange, permits, loading, activeId, onHover, onSelectPermit, onLocate, locating, geoError,
+  center, radius, onRadiusChange, onCenterChange, permits, loading, active, activeId, onHover, onSelectPermit, onLocate, locating, geoError,
 }: PermitMapProps) {
   const skipNextFit = useRef(false)
 
@@ -225,6 +236,7 @@ export function PermitMap({
       {geoError && <p className="map__geo-error" role="alert">{geoError}</p>}
 
       <MapContainer center={AUSTIN_CENTER} zoom={12} scrollWheelZoom preferCanvas style={{ height: '100%' }}>
+        <RefreshMapSize active={active} />
         <MoveSearchArea radius={radius} onMove={(lat, lng) => {
           skipNextFit.current = true
           onCenterChange(lat, lng)

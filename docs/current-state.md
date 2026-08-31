@@ -19,14 +19,14 @@ All under Matt Mangum's personal accounts.
 | Supabase project | `yardsign-production`, ref `ohdzlznzyrvctxogbhch`, region `ca-central-1` |
 | Supabase dashboard | https://supabase.com/dashboard/project/ohdzlznzyrvctxogbhch |
 | Netlify site | `yardsign-523` (`yardsign` / `yardsign-city` subdomains were taken), id `55c34cfb-0863-4a24-bb00-5bebd65bf338` |
-| Live URL | https://yardsign.city (primary; DNS/TLS propagating after registration) · https://yardsign-523.netlify.app remains available — GitHub repo connected; a push to `main` builds and publishes |
+| Live URL | https://yardsign.city (primary, DNS and HTTPS verified) · https://yardsign-523.netlify.app remains available — GitHub repo connected; a push to `main` builds and publishes |
 | Netlify env | `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `IMPORT_SECRET`, `IMPORT_WINDOW_MONTHS`, `VITE_STADIA_API_KEY` all set. Stadia key is domain-restricted in the Stadia dashboard (localhost + `yardsign-523.netlify.app` + `yardsign.city`) |
 | GitHub | `github.com/mtmangum/yardSign` (public), `main` — local may be ahead of `origin`; unpushed commits are not yet deployed |
 | Migrations applied | `202608300001` (initial), `202608300002` (permit_class in `permits_near()`), `202608300003` (`permits_near_count()`), `202608300004` (grid-distributed map sample) |
 | `permits` rows | 84,521, kept fresh by the daily incremental import (07:00 UTC cron) |
 | Geocoded | 66,734 `matched` (79%), 17,787 `no_match` (21%), 0 `pending`, 0 `failed` |
 | Basemap | Stadia Maps "Alidade Smooth" (was CARTO Voyager — CARTO now watermarks keyless tiles) |
-| Domain | `yardsign.city` registered through Netlify on 2026-08-30; primary domain, Netlify DNS propagating, `www` redirects to apex, TLS pending |
+| Domain | `yardsign.city` registered through Netlify on 2026-08-30; primary domain, public DNS and TLS verified, `www` redirects to apex |
 
 **`.env` uses the legacy `service_role` JWT, not an `sb_secret_` key.** The
 new-format API keys return 401 on this project until they are enabled in the
@@ -51,9 +51,7 @@ That is not built yet.
 - **Census geocoding, not TCAD parcels.** Cheaper to stand up and already proven
   in ScoreScout. The parcel join is the accuracy upgrade, not the starting point.
 - **Name.** "Yard Sign", after the paper zoning notices staked on Austin lots.
-  `yardsign.com` and `yardsign.org` are both parked and for sale as premium
-  domains; `yardsign.city` did not resolve as of 2026-08-30 and is the intended
-  domain. Not yet registered. Confirm at a registrar before committing.
+  `yardsign.city` is registered through Netlify and is the primary domain.
 
 ## Architecture
 
@@ -191,8 +189,6 @@ near-identical desaturated equivalent.
 
 - No alerts, subscriptions, or email. That is the retention mechanic and the
   reason this beats a one-off lookup, so it should not wait long.
-- **Domain propagation pending.** `yardsign.city` is registered and primary;
-  public DNS and the automatic Let's Encrypt certificate are still provisioning.
 - **Local `main` may be ahead of `origin`** — deploys are manual, so unpushed
   commits are not live. Migration `202608300003` is applied to the DB, but the
   code that calls `permits_near_count()` (the `total` field) ships only when the
@@ -271,6 +267,11 @@ refreshes clear stale dots immediately and show a compact updating state until
 the new spatial sample arrives, rather than leaving an apparently unchanged map.
 Clicking a map marker persistently highlights and scrolls its permit into view in
 the sidebar; a sampled permit outside the closest 500 is temporarily inserted.
+Mobile uses explicit Map/List views instead of stacking both surfaces. The fixed
+view switcher preserves context. Selecting a marker stays on the map and opens
+its popup; switching to List afterward scrolls to the selected permit. Popups
+render above the fixed mobile controls, and returning to the map invalidates
+Leaflet's hidden layout size.
 
 ## Watch after the laptop closes
 

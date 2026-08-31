@@ -32,6 +32,7 @@ export default function App() {
   const [days, setDays] = useState(180)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [selectedPermit, setSelectedPermit] = useState<Permit | null>(null)
+  const [mobileView, setMobileView] = useState<'map' | 'list'>('map')
 
   // Memoized so usePermits does not refetch on every unrelated render.
   const query = useMemo<PermitQuery | null>(
@@ -42,6 +43,7 @@ export default function App() {
   const geo = useGeolocate(({ lat, lng }) => {
     setSelectedPermit(null)
     setLocation({ label: 'Current location', lat, lng })
+    setMobileView('map')
   })
   const activeId = hoveredId ?? selectedPermit?.id ?? null
   const listedPermits = useMemo(() => {
@@ -55,7 +57,23 @@ export default function App() {
   }
 
   return (
-    <div className="app">
+    <div className="app" data-mobile-view={mobileView}>
+      <nav className="mobile-view-switcher" aria-label="Choose mobile view">
+        <button
+          type="button"
+          aria-pressed={mobileView === 'map'}
+          onClick={() => setMobileView('map')}
+        >
+          Map
+        </button>
+        <button
+          type="button"
+          aria-pressed={mobileView === 'list'}
+          onClick={() => setMobileView('list')}
+        >
+          List
+        </button>
+      </nav>
       <aside className="app__panel">
         <header className="masthead">
           <span className="masthead__mark">
@@ -76,6 +94,7 @@ export default function App() {
             onSelect={(match) => {
               setSelectedPermit(null)
               setLocation(match)
+              setMobileView('map')
             }}
             selectedLabel={location?.label ?? null}
             onLocate={geo.locate}
@@ -134,6 +153,7 @@ export default function App() {
             hasLocation={Boolean(location)}
             activeId={activeId}
             focusId={selectedPermit?.id ?? null}
+            focusKey={mobileView}
             onHover={setHoveredId}
             onSelect={openPermit}
           />
@@ -153,9 +173,12 @@ export default function App() {
         }}
         permits={mapPermits}
         loading={loading}
+        active={mobileView === 'map'}
         activeId={activeId}
         onHover={setHoveredId}
-        onSelectPermit={setSelectedPermit}
+        onSelectPermit={(permit) => {
+          setSelectedPermit(permit)
+        }}
         onLocate={geo.locate}
         locating={geo.locating}
         geoError={geo.error}

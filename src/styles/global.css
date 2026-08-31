@@ -77,15 +77,49 @@ button, input, select { font: inherit; color: inherit; }
   height: 100dvh;
 }
 
+.mobile-view-switcher { display: none; }
+
 @media (max-width: 860px) {
   .app {
-    grid-template-columns: 1fr;
-    grid-template-rows: 42dvh auto;
+    display: block;
     height: auto;
     min-height: 100dvh;
   }
-  .app__panel { grid-row: 2; }
-  .app__map { grid-row: 1; }
+  .app[data-mobile-view="map"] { height: 100dvh; overflow: hidden; }
+  .app[data-mobile-view="map"] .app__panel { display: none; }
+  .app[data-mobile-view="list"] .app__map { display: none; }
+  .app__map { height: 100dvh; }
+
+  .mobile-view-switcher {
+    position: fixed;
+    left: 50%;
+    top: 12px;
+    z-index: 1000;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 136px;
+    padding: 3px;
+    transform: translateX(-50%);
+    background: #ffffff;
+    border: 2px solid #201e1d;
+  }
+
+  .mobile-view-switcher button {
+    padding: 7px 10px;
+    background: transparent;
+    border: 0;
+    color: #6b6660;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .mobile-view-switcher button[aria-pressed="true"] {
+    background: #201e1d;
+    color: #ffffff;
+  }
 }
 
 /* Panel ---------------------------------------------------------------- */
@@ -475,6 +509,7 @@ button, input, select { font: inherit; color: inherit; }
 
 .app__map .leaflet-popup-content { margin: 0; width: 400px !important; }
 .app__map .leaflet-popup-content-wrapper { padding: 0; border-radius: 0; overflow: hidden; }
+.app__map .leaflet-popup-pane { z-index: 1100; }
 
 .map__popup { padding: 14px 30px 13px 20px; color: #201e1d; }
 .map__popup-eyebrow { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
@@ -517,20 +552,21 @@ button, input, select { font: inherit; color: inherit; }
 
 @media (max-width: 860px) {
   .app__panel {
+    min-height: 100dvh;
     border-right: 0;
     overflow: visible;
   }
   .results { overflow: visible; }
-  .masthead { padding: 14px 16px 12px; }
+  .masthead { padding: 64px 16px 12px; }
   .masthead__tagline { margin-top: 3px; }
   .controls { padding: 14px 16px; gap: 12px; }
   .results__summary { padding-inline: 16px; }
   .permit { padding-right: 16px; }
   .map__move-hint { display: none; }
+  .map__geo-error { top: 62px; }
 }
 
 @media (max-width: 420px) {
-  .app { grid-template-rows: 38dvh auto; }
   .masthead__tagline { display: none; }
   .segmented__option { font-size: 10px; }
   .results__kinds { gap: 8px; }

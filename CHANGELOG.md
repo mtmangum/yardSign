@@ -11,6 +11,9 @@
   visible nested scrollbar while retaining scrolling behavior.
 - Changed mobile results to normal document scrolling.
 - Added external-record indicators to permit rows that open the city portal.
+- Replaced the stacked mobile layout with explicit Map and List views; marker
+  selection stays on the map, switching to List focuses the selected row, and
+  returning restores map sizing. Mobile popups render above fixed map controls.
 
 ### Map
 
@@ -35,4 +38,5 @@
 
 - Applied Supabase migration `202608300004_permits_near_map.sql` to production.
 - Registered `yardsign.city` through Netlify, made it the primary production
-  domain, and configured `www.yardsign.city` to redirect to the apex.
+  domain, configured `www.yardsign.city` to redirect to the apex, and verified
+  public DNS and HTTPS.

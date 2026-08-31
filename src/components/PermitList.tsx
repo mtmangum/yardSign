@@ -96,19 +96,20 @@ interface PermitListProps {
   hasLocation: boolean
   activeId: string | null
   focusId: string | null
+  focusKey: string
   onHover: (id: string | null) => void
   onSelect: (permit: Permit) => void
 }
 
 const n = (value: number) => value.toLocaleString('en-US')
 
-export function PermitList({ permits, mappedCount, total, loading, error, hasLocation, activeId, focusId, onHover, onSelect }: PermitListProps) {
+export function PermitList({ permits, mappedCount, total, loading, error, hasLocation, activeId, focusId, focusKey, onHover, onSelect }: PermitListProps) {
   const focusedRow = useRef<HTMLButtonElement | null>(null)
 
   useEffect(() => {
     if (!focusId || !focusedRow.current) return
     focusedRow.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-  }, [focusId, permits])
+  }, [focusId, focusKey, permits])
 
   if (!hasLocation) {
     return (
