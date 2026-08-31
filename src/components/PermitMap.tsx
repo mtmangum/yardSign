@@ -301,6 +301,7 @@ export function PermitMap({
   center, radius, onRadiusChange, onCenterChange, permits, loading, active, activeId, onHover, onSelectPermit, onLocate, locating, geoError,
 }: PermitMapProps) {
   const skipNextFit = useRef(false)
+  const popupTopPadding: [number, number] = window.innerWidth <= 860 ? [16, 164] : [24, 24]
 
   return (
     <div className="app__map">
@@ -377,7 +378,13 @@ export function PermitMap({
                 click: () => onSelectPermit(permit),
               }}
             >
-              <Popup minWidth={380} maxWidth={440}>
+              <Popup
+                minWidth={380}
+                maxWidth={440}
+                autoPanPaddingTopLeft={popupTopPadding}
+                autoPanPaddingBottomRight={[16, 16]}
+                keepInView
+              >
                 <div className="map__popup" data-kind={kind}>
                   <div className="map__popup-eyebrow">
                     <span className="map__popup-kind">

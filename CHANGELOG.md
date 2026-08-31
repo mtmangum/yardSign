@@ -17,6 +17,8 @@
 - Enlarged mobile view, zoom, locate, and popup-close controls to touch-friendly
   targets; selected permits align at the top when switching to List using a
   faster, controlled scroll animation.
+- Keep mobile permit cards below the full top control stack by auto-panning the
+  map with a dedicated top safe area.
 
 ### Map
 
