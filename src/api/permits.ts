@@ -23,6 +23,7 @@ export interface PermitQuery {
   lng: number
   radius: number
   days: number
+  limit?: number
   workClasses?: string[]
 }
 
@@ -34,6 +35,7 @@ export interface AddressMatch {
 
 export interface PermitResult {
   permits: Permit[]
+  mapPermits: Permit[]
   /** Total in the radius before the marker cap - so the UI can say "500 of N". */
   total: number
 }
@@ -45,6 +47,7 @@ export async function fetchPermits(query: PermitQuery, signal?: AbortSignal): Pr
     radius: String(query.radius),
     days: String(query.days),
   })
+  if (query.limit) params.set('limit', String(query.limit))
   for (const workClass of query.workClasses ?? []) params.append('workClass', workClass)
 
   const response = await fetch(`/api/permits?${params}`, { signal })
@@ -52,8 +55,12 @@ export async function fetchPermits(query: PermitQuery, signal?: AbortSignal): Pr
     const body = await response.json().catch(() => ({}))
     throw new Error(body.error ?? `Permit lookup failed (${response.status})`)
   }
-  const payload = (await response.json()) as { permits: Permit[]; total?: number }
-  return { permits: payload.permits, total: payload.total ?? payload.permits.length }
+  const payload = (await response.json()) as { permits: Permit[]; mapPermits?: Permit[]; total?: number }
+  return {
+    permits: payload.permits,
+    mapPermits: payload.mapPermits ?? payload.permits,
+    total: payload.total ?? payload.permits.length,
+  }
 }
 
 export async function geocodeAddress(query: string, signal?: AbortSignal): Promise<AddressMatch[]> {

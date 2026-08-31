@@ -12,6 +12,18 @@ React 19 + Vite + TypeScript, Leaflet for the map (Stadia Maps basemap tiles),
 Supabase for storage, and Netlify Functions for the scheduled import, geocoding,
 and read API. Same shape as ScoreScout, so the operational habits carry over.
 
+## Product behavior
+
+Yard Sign opens on downtown Austin with recent permits already visible. Search
+an Austin address or use the location button, then choose a radius and issued
+window. The sidebar lists the 500 closest permits; the map plots up to 1,000
+permits sampled across the full search area so dense blocks do not hide activity
+near the perimeter.
+
+On desktop, drag the handle on the circle edge to resize the search area. Hold
+Command (macOS) or Control (Windows/Linux) to preview a ghost circle, then click
+the map to move the search center without panning the basemap.
+
 ## Data
 
 City of Austin **Issued Construction Permits**
@@ -28,7 +40,7 @@ a radius search. That is why there are two pipelines rather than one.
 ```bash
 npm install
 cp .env.example .env       # fill in Supabase URL, secret key, IMPORT_SECRET
-netlify dev
+netlify dev --port 8888
 ```
 
 `.env` currently holds the Supabase **legacy `service_role` JWT** — the
@@ -49,7 +61,7 @@ supabase db push
 | `import-austin-permits` | daily, 07:00 UTC | Pull the last `IMPORT_WINDOW_MONTHS` of issued permits and upsert on `(city_code, permit_number)` |
 | `geocode-census-batch-background` | manual, `GET /api/geocode-census-batch` | Bulk-geocode via the Census address-batch endpoint (CSV upload). Used for the initial backfill — ~85k rows in minutes |
 | `geocode-census-background` | manual, `GET /api/geocode-census` | One-at-a-time geocode for the small daily incremental |
-| `permits` | `GET /api/permits` | Radius search via the `permits_near()` SQL function |
+| `permits` | `GET /api/permits` | Closest-first list, grid-distributed map sample, and uncapped total via Supabase SQL functions |
 | `geocode-address` | `GET /api/geocode-address` | Address autocomplete for the search box |
 
 The initial backfill is done (66,734 of 84,521 matched, 2026-08-30). To
@@ -67,9 +79,11 @@ node --env-file=.env -e "
 
 Backend provisioned (`yardsign-production` on Supabase, `yardsign-523` on
 Netlify), 84,521 permits imported and geocoded, API verified through
-`netlify dev`. Not deployed; map not yet eyeballed in a browser.
+`netlify dev`, and the complete search/map flow deployed at
+https://yardsign-523.netlify.app. Production deploys from `main`; local full-stack
+development runs at http://localhost:8888.
 
 ## Not built yet
 
-Production deploy, alerts and subscriptions, site plan cases, zoning cases, and
-the TCAD parcel join. See `docs/current-state.md`.
+Alerts and subscriptions, a custom domain, site plan cases, zoning cases, and the
+TCAD parcel join. See `docs/current-state.md`.

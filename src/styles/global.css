@@ -78,7 +78,12 @@ button, input, select { font: inherit; color: inherit; }
 }
 
 @media (max-width: 860px) {
-  .app { grid-template-columns: 1fr; grid-template-rows: 45dvh 1fr; }
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: 42dvh auto;
+    height: auto;
+    min-height: 100dvh;
+  }
   .app__panel { grid-row: 2; }
   .app__map { grid-row: 1; }
 }
@@ -95,36 +100,42 @@ button, input, select { font: inherit; color: inherit; }
 
 .masthead {
   padding: 20px 20px 16px;
-  border-bottom: 2px solid var(--rule-strong);
 }
 
 .masthead__mark {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-weight: 800;
-  font-size: 19px;
-  letter-spacing: -0.02em;
+  font-size: 21px;
+  letter-spacing: -0.035em;
 }
 
 .masthead__sign {
-  width: 26px;
-  height: 20px;
+  width: 38px;
+  height: 34px;
   flex: none;
   display: block;
+  overflow: visible;
 }
 
+.masthead__board { fill: var(--paper-raised); stroke: currentColor; stroke-width: 2; }
+.masthead__flag { fill: var(--notice); }
+.masthead__stake { fill: currentColor; }
+.masthead__monogram { fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: square; }
+.masthead__copy { fill: none; stroke: currentColor; stroke-width: 2; }
+
 .masthead__tagline {
-  margin: 6px 0 0;
+  margin: 4px 0 0 48px;
   font-size: 13px;
   color: var(--ink-soft);
 }
 
 .controls {
   padding: 16px 20px;
-  border-bottom: 2px solid var(--rule-strong);
+  background: var(--paper);
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
 .field { display: grid; gap: 6px; }
@@ -175,7 +186,28 @@ button, input, select { font: inherit; color: inherit; }
   outline: none;
 }
 
-.field__row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--rule-strong);
+}
+
+.segmented__option {
+  min-width: 0;
+  padding: 8px 4px;
+  border: 0;
+  border-right: 1px solid var(--rule);
+  background: var(--paper);
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.segmented__option:last-child { border-right: 0; }
+.segmented__option:hover { background: var(--notice-soft); color: var(--ink); }
+.segmented__option[aria-checked="true"] { background: var(--ink); color: var(--paper-raised); }
 
 .suggestions {
   list-style: none;
@@ -203,7 +235,14 @@ button, input, select { font: inherit; color: inherit; }
 
 /* Results -------------------------------------------------------------- */
 
-.results { flex: 1; overflow-y: auto; }
+.results {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.results::-webkit-scrollbar { display: none; }
 
 .results__status {
   padding: 32px 20px;
@@ -212,37 +251,49 @@ button, input, select { font: inherit; color: inherit; }
   text-align: center;
 }
 
-.results__count {
+.results__summary {
   position: sticky;
   top: 0;
-  padding: 12px 20px;
+  z-index: 2;
+  padding: 14px 20px 13px;
   background: var(--paper-raised);
-  border-bottom: 2px solid var(--rule-strong);
+}
+
+.results__count {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
   font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink);
 }
+
+.results__count strong { font-size: 25px; line-height: 1; letter-spacing: -0.06em; }
+.results__count small { margin-left: auto; color: var(--ink-soft); font-size: 9px; }
+
+.results__kinds { display: flex; gap: 12px; margin-top: 11px; overflow: hidden; }
+.kind-count { display: inline-flex; align-items: center; gap: 5px; min-width: 0; font-size: 10px; color: var(--ink-soft); }
+.kind-count i { width: 7px; height: 7px; flex: none; background: var(--other); }
+.kind-count strong { font-family: var(--font-mono); color: var(--ink); font-size: 10px; }
+.kind-count[data-kind="demolition"] i { background: var(--demolition); }
+.kind-count[data-kind="new"] i { background: var(--new-build); }
+.kind-count[data-kind="remodel"] i { background: var(--remodel); }
 
 .permit {
   display: block;
   width: 100%;
   text-align: left;
-  padding: 14px 20px 14px 15px;
+  padding: 14px 20px;
   background: none;
   border: 0;
-  border-bottom: 1px solid var(--rule);
-  border-left: 5px solid var(--other);
   cursor: pointer;
 }
 
 .permit:hover { background: var(--notice-soft); }
 .permit[data-active="true"] { background: var(--notice-soft); }
-.permit[data-kind="demolition"] { border-left-color: var(--demolition); }
-.permit[data-kind="new"] { border-left-color: var(--new-build); }
-.permit[data-kind="remodel"] { border-left-color: var(--remodel); }
 
 .permit__head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
 
@@ -254,6 +305,8 @@ button, input, select { font: inherit; color: inherit; }
   font-family: var(--font-mono);
   white-space: nowrap;
 }
+
+.permit__external { color: var(--ink); font-size: 13px; }
 
 /* A filled tag rather than accent-coloured text, so a row of remodels does not
    tint the whole panel red. White on accent for demolition only. */
@@ -297,6 +350,27 @@ button, input, select { font: inherit; color: inherit; }
 .app__map { position: relative; }
 .app__map .leaflet-container { width: 100%; height: 100%; background: var(--paper); }
 
+.radius-handle {
+  display: grid;
+  place-items: center;
+  cursor: ew-resize;
+}
+
+.radius-handle__grip {
+  display: block;
+  width: 18px;
+  height: 18px;
+  background: #ffffff;
+  border: 3px solid #201e1d;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 3px #ec3013, 0 1px 4px rgba(32, 30, 29, 0.25);
+}
+
+.radius-handle:hover .radius-handle__grip,
+.radius-handle.leaflet-drag-target .radius-handle__grip {
+  transform: scale(1.12);
+}
+
 /* "Search from my location" — sits under the Leaflet zoom control, styled to
    match it and the legend (light, since it is on the always-light basemap). */
 .map__locate {
@@ -334,6 +408,38 @@ button, input, select { font: inherit; color: inherit; }
   font-weight: 600;
 }
 
+.map__loading {
+  position: absolute;
+  left: 50%;
+  top: 12px;
+  z-index: 500;
+  transform: translateX(-50%);
+  padding: 7px 10px;
+  background: #201e1d;
+  color: #ffffff;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.map__move-hint {
+  position: absolute;
+  left: 12px;
+  bottom: 22px;
+  z-index: 500;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #6b6660;
+  border: 1px solid rgba(32, 30, 29, 0.3);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+}
+
 /* The legend and popups sit on the always-light basemap, so they stay light in
    both themes rather than following prefers-color-scheme. */
 .map__legend {
@@ -357,3 +463,25 @@ button, input, select { font: inherit; color: inherit; }
 .map__popup h3 { margin: 0 0 4px; font-size: 13px; color: #201e1d; }
 .map__popup p { margin: 0 0 4px; font-size: 12px; color: #6b6660; }
 .map__popup a { color: var(--notice); font-size: 12px; }
+
+@media (max-width: 860px) {
+  .app__panel {
+    border-right: 0;
+    overflow: visible;
+  }
+  .results { overflow: visible; }
+  .masthead { padding: 14px 16px 12px; }
+  .masthead__tagline { margin-top: 3px; }
+  .controls { padding: 14px 16px; gap: 12px; }
+  .results__summary { padding-inline: 16px; }
+  .permit { padding-right: 16px; }
+  .map__move-hint { display: none; }
+}
+
+@media (max-width: 420px) {
+  .app { grid-template-rows: 38dvh auto; }
+  .masthead__tagline { display: none; }
+  .segmented__option { font-size: 10px; }
+  .results__kinds { gap: 8px; }
+  .kind-count span { display: none; }
+}

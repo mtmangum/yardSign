@@ -88,6 +88,7 @@ const formatDate = (value: string | null) =>
 
 interface PermitListProps {
   permits: Permit[]
+  mappedCount: number
   total: number
   loading: boolean
   error: string | null
@@ -99,7 +100,7 @@ interface PermitListProps {
 
 const n = (value: number) => value.toLocaleString('en-US')
 
-export function PermitList({ permits, total, loading, error, hasLocation, activeId, onHover, onSelect }: PermitListProps) {
+export function PermitList({ permits, mappedCount, total, loading, error, hasLocation, activeId, onHover, onSelect }: PermitListProps) {
   if (!hasLocation) {
     return (
       <p className="results__status">
@@ -114,12 +115,33 @@ export function PermitList({ permits, total, loading, error, hasLocation, active
     return <p className="results__status">No permits issued in this radius and time window. Try a wider radius.</p>
   }
 
+  const kindCounts = permits.reduce<Record<PermitKind, number>>(
+    (counts, permit) => {
+      counts[permitKind(permit)] += 1
+      return counts
+    },
+    { demolition: 0, new: 0, remodel: 0, other: 0 },
+  )
+
   return (
     <>
-      <div className="results__count">
-        {total > permits.length
-          ? `${n(permits.length)} of ${n(total)} · closest first`
-          : `${n(total)} permit${total === 1 ? '' : 's'}`}
+      <div className="results__summary">
+        <div className="results__count">
+          <strong>{n(total)}</strong>
+          <span>{total === 1 ? 'permit nearby' : 'permits nearby'}</span>
+          {total > permits.length && (
+            <small>{n(mappedCount)} mapped · {n(permits.length)} closest listed</small>
+          )}
+        </div>
+        <div className="results__kinds" aria-label="Permit types in the visible results">
+          {(Object.entries(kindCounts) as [PermitKind, number][]).map(([kind, count]) => (
+            <span className="kind-count" data-kind={kind} key={kind}>
+              <i aria-hidden="true" />
+              <span>{kind === 'new' ? 'New' : kind[0].toUpperCase() + kind.slice(1)}</span>
+              <strong>{n(count)}</strong>
+            </span>
+          ))}
+        </div>
       </div>
       {permits.map((permit) => {
         const valuation = formatValuation(permit.total_job_valuation)
@@ -137,7 +159,10 @@ export function PermitList({ permits, total, loading, error, hasLocation, active
           >
             <div className="permit__head">
               <span className="permit__address">{permit.address ?? 'Address not recorded'}</span>
-              <span className="permit__distance">{milesFrom(permit.distance_m)}</span>
+              <span className="permit__distance">
+                {milesFrom(permit.distance_m)}
+                {permit.source_url && <span className="permit__external" aria-hidden="true"> ↗</span>}
+              </span>
             </div>
             <span className="permit__work">{permit.work_class ?? permit.permit_type_desc ?? 'Permit'}</span>
             {permit.description && <p className="permit__description">{permit.description}</p>}

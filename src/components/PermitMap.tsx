@@ -1,5 +1,6 @@
-import { useEffect } from 'react'
-import { CircleMarker, MapContainer, Popup, TileLayer, Circle, useMap } from 'react-leaflet'
+import { useEffect, useRef, useState, type RefObject } from 'react'
+import { divIcon } from 'leaflet'
+import { CircleMarker, MapContainer, Marker, Popup, TileLayer, Circle, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 import type { Permit } from '../api/permits'
 import { permitKind } from './PermitList'
 
@@ -13,23 +14,166 @@ const KIND_COLOR: Record<ReturnType<typeof permitKind>, string> = {
   other: '#c9c5c0',
 }
 
-function Recenter({ lat, lng, radius }: { lat: number; lng: number; radius: number }) {
+const RADIUS_STEPS = [402, 805, 1609, 3219] as const
+const RADIUS_MIN = RADIUS_STEPS[0]
+const RADIUS_MAX = RADIUS_STEPS[RADIUS_STEPS.length - 1]
+const resizeHandleIcon = divIcon({
+  className: 'radius-handle',
+  html: '<span class="radius-handle__grip"></span>',
+  iconSize: [28, 28],
+  iconAnchor: [14, 14],
+})
+
+const nearestRadiusStep = (meters: number) =>
+  RADIUS_STEPS.reduce((closest, step) =>
+    Math.abs(step - meters) < Math.abs(closest - meters) ? step : closest)
+
+function RadiusOverlay({
+  lat, lng, radius, onRadiusChange,
+}: {
+  lat: number
+  lng: number
+  radius: number
+  onRadiusChange: (radius: number) => void
+}) {
+  const map = useMap()
+  const [previewRadius, setPreviewRadius] = useState(radius)
+
+  useEffect(() => setPreviewRadius(radius), [radius])
+
+  const lngMeters = 111320 * Math.max(Math.cos(lat * Math.PI / 180), 0.000001)
+  const handlePosition: [number, number] = [lat, lng + previewRadius / lngMeters]
+
+  return (
+    <>
+      <Circle
+        center={[lat, lng]}
+        radius={previewRadius}
+        pathOptions={{ color: '#17171a', weight: 1, fillOpacity: 0.04, dashArray: '4 4' }}
+      />
+      <Marker
+        position={handlePosition}
+        icon={resizeHandleIcon}
+        draggable
+        keyboard={false}
+        zIndexOffset={1000}
+        eventHandlers={{
+          drag: (event) => {
+            const meters = map.distance([lat, lng], event.target.getLatLng())
+            setPreviewRadius(Math.min(Math.max(meters, RADIUS_MIN), RADIUS_MAX))
+          },
+          dragend: (event) => {
+            const meters = map.distance([lat, lng], event.target.getLatLng())
+            const snapped = nearestRadiusStep(meters)
+            setPreviewRadius(snapped)
+            onRadiusChange(snapped)
+          },
+        }}
+      >
+        <Tooltip direction="top" offset={[0, -12]}>Drag to resize search area</Tooltip>
+      </Marker>
+    </>
+  )
+}
+
+function Recenter({
+  lat, lng, radius, skipNextFit,
+}: {
+  lat: number
+  lng: number
+  radius: number
+  skipNextFit: RefObject<boolean>
+}) {
   const map = useMap()
   useEffect(() => {
+    if (skipNextFit.current) {
+      skipNextFit.current = false
+      return
+    }
     // Fit the search circle rather than a fixed zoom, so changing the radius
     // reframes the map the way a user expects.
     map.fitBounds([
       [lat - radius / 111320, lng - radius / 88000],
       [lat + radius / 111320, lng + radius / 88000],
     ], { padding: [24, 24] })
-  }, [lat, lng, radius, map])
+  }, [lat, lng, radius, map, skipNextFit])
   return null
+}
+
+function MoveSearchArea({
+  radius, onMove,
+}: {
+  radius: number
+  onMove: (lat: number, lng: number) => void
+}) {
+  const [previewCenter, setPreviewCenter] = useState<[number, number] | null>(null)
+  const previewFrame = useRef<number | null>(null)
+  const pendingPreview = useRef<[number, number] | null>(null)
+
+  const queuePreview = (center: [number, number] | null) => {
+    pendingPreview.current = center
+    if (previewFrame.current !== null) return
+    previewFrame.current = window.requestAnimationFrame(() => {
+      previewFrame.current = null
+      setPreviewCenter(pendingPreview.current)
+    })
+  }
+
+  useEffect(() => {
+    const clearPreview = (event: KeyboardEvent) => {
+      if (event.key === 'Meta' || event.key === 'Control') queuePreview(null)
+    }
+    const clearOnBlur = () => queuePreview(null)
+    window.addEventListener('keyup', clearPreview)
+    window.addEventListener('blur', clearOnBlur)
+    return () => {
+      window.removeEventListener('keyup', clearPreview)
+      window.removeEventListener('blur', clearOnBlur)
+      if (previewFrame.current !== null) window.cancelAnimationFrame(previewFrame.current)
+    }
+  }, [])
+
+  useMapEvents({
+    mousemove: (event) => {
+      const pointer = event.originalEvent as MouseEvent
+      queuePreview(pointer.metaKey || pointer.ctrlKey
+        ? [event.latlng.lat, event.latlng.lng]
+        : null)
+    },
+    mouseout: () => queuePreview(null),
+    click: (event) => {
+      const pointer = event.originalEvent as MouseEvent
+      if (!pointer.metaKey && !pointer.ctrlKey) return
+      pointer.preventDefault()
+      queuePreview(null)
+      onMove(event.latlng.lat, event.latlng.lng)
+    },
+  })
+
+  return previewCenter ? (
+    <Circle
+      center={previewCenter}
+      radius={radius}
+      interactive={false}
+      pathOptions={{
+        color: '#ec3013',
+        weight: 2,
+        opacity: 0.72,
+        fillColor: '#ec3013',
+        fillOpacity: 0.045,
+        dashArray: '7 7',
+      }}
+    />
+  ) : null
 }
 
 interface PermitMapProps {
   center: { lat: number; lng: number } | null
   radius: number
+  onRadiusChange: (radius: number) => void
+  onCenterChange: (lat: number, lng: number) => void
   permits: Permit[]
+  loading: boolean
   activeId: string | null
   onHover: (id: string | null) => void
   onLocate: () => void
@@ -40,8 +184,10 @@ interface PermitMapProps {
 const AUSTIN_CENTER: [number, number] = [30.2672, -97.7431]
 
 export function PermitMap({
-  center, radius, permits, activeId, onHover, onLocate, locating, geoError,
+  center, radius, onRadiusChange, onCenterChange, permits, loading, activeId, onHover, onLocate, locating, geoError,
 }: PermitMapProps) {
+  const skipNextFit = useRef(false)
+
   return (
     <div className="app__map">
       <button
@@ -60,7 +206,11 @@ export function PermitMap({
       </button>
       {geoError && <p className="map__geo-error" role="alert">{geoError}</p>}
 
-      <MapContainer center={AUSTIN_CENTER} zoom={12} scrollWheelZoom style={{ height: '100%' }}>
+      <MapContainer center={AUSTIN_CENTER} zoom={12} scrollWheelZoom preferCanvas style={{ height: '100%' }}>
+        <MoveSearchArea radius={radius} onMove={(lat, lng) => {
+          skipNextFit.current = true
+          onCenterChange(lat, lng)
+        }} />
         {/*
           Stadia Maps "Alidade Smooth": a desaturated basemap so the permit
           markers carry the colour. Keyless from localhost; production needs a
@@ -77,11 +227,17 @@ export function PermitMap({
 
         {center && (
           <>
-            <Recenter lat={center.lat} lng={center.lng} radius={radius} />
-            <Circle
-              center={[center.lat, center.lng]}
+            <Recenter
+              lat={center.lat}
+              lng={center.lng}
               radius={radius}
-              pathOptions={{ color: '#17171a', weight: 1, fillOpacity: 0.04, dashArray: '4 4' }}
+              skipNextFit={skipNextFit}
+            />
+            <RadiusOverlay
+              lat={center.lat}
+              lng={center.lng}
+              radius={radius}
+              onRadiusChange={onRadiusChange}
             />
           </>
         )}
@@ -121,6 +277,10 @@ export function PermitMap({
           )
         })}
       </MapContainer>
+
+      {loading && <div className="map__loading" role="status">Updating map…</div>}
+
+      <div className="map__move-hint">⌘/Ctrl-click map to move search</div>
 
       <div className="map__legend">
         {(['demolition', 'new', 'remodel', 'other'] as const).map((kind) => (

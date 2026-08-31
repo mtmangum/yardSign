@@ -50,19 +50,29 @@ export default async (request: Request) => {
   }
 
   try {
-    const [rowsResponse, countResponse] = await Promise.all([
+    const mapRequest = supabaseRequest('rpc/permits_near_map', {
+      method: 'POST',
+      body: JSON.stringify({ ...rpcArgs, p_limit: 1000 }),
+    }).catch((error: unknown) => {
+      console.warn(`Map sampling unavailable: ${error instanceof Error ? error.message : error}`)
+      return null
+    })
+
+    const [rowsResponse, mapResponse, countResponse] = await Promise.all([
       supabaseRequest('rpc/permits_near', {
         method: 'POST',
         body: JSON.stringify({ ...rpcArgs, p_limit: limit }),
       }),
+      mapRequest,
       supabaseRequest('rpc/permits_near_count', {
         method: 'POST',
         body: JSON.stringify(rpcArgs),
       }),
     ])
     const permits = await rowsResponse.json()
+    const mapPermits = mapResponse ? await mapResponse.json() : permits
     const total = await countResponse.json()
-    return new Response(JSON.stringify({ permits, total, center: { lat, lng }, radius, days }), {
+    return new Response(JSON.stringify({ permits, mapPermits, total, center: { lat, lng }, radius, days }), {
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'public, max-age=300, stale-while-revalidate=3600',

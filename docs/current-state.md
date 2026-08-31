@@ -23,7 +23,7 @@ All under Matt Mangum's personal accounts.
 | Live URL | https://yardsign-523.netlify.app — GitHub repo connected; a push to `main` builds and publishes (kept manual on purpose) |
 | Netlify env | `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `IMPORT_SECRET`, `IMPORT_WINDOW_MONTHS`, `VITE_STADIA_API_KEY` all set. Stadia key is domain-restricted in the Stadia dashboard (localhost + `yardsign-523.netlify.app` + `yardsign.city`) |
 | GitHub | `github.com/mtmangum/yardSign` (public), `main` — local may be ahead of `origin`; unpushed commits are not yet deployed |
-| Migrations applied | `202608300001` (initial), `202608300002` (permit_class in `permits_near()`), `202608300003` (`permits_near_count()`) |
+| Migrations applied | `202608300001` (initial), `202608300002` (permit_class in `permits_near()`), `202608300003` (`permits_near_count()`), `202608300004` (grid-distributed map sample) |
 | `permits` rows | 84,521, kept fresh by the daily incremental import (07:00 UTC cron) |
 | Geocoded | 66,734 `matched` (79%), 17,787 `no_match` (21%), 0 `pending`, 0 `failed` |
 | Basemap | Stadia Maps "Alidade Smooth" (was CARTO Voyager — CARTO now watermarks keyless tiles) |
@@ -146,6 +146,8 @@ daily incremental.
   structural classes.
 - `202608300003_permits_near_count.sql` — `permits_near_count()`, the uncapped
   total for the same radius/time/filter window.
+- `202608300004_permits_near_map.sql` — grid-distributed map sampling so dense
+  center blocks do not consume the marker cap and create a false empty ring.
 
 - `permits` — one row per `(city_code, permit_number)`, with the raw Socrata row
   kept in `source_payload` so re-deriving a column never requires a re-import.
@@ -232,23 +234,44 @@ near-identical desaturated equivalent.
 
 ## Next steps, in order
 
-1. **Push what's staged and deploy** — local `main` is ahead of `origin` with
-   the count bar and the locate button. A push builds and publishes.
-2. **Domain** — register `yardsign.city`, add it in the Netlify site's domain
+1. **Domain** — register `yardsign.city`, add it in the Netlify site's domain
    settings, point DNS at Netlify. The Stadia key already allows it.
-3. **Alerts / subscriptions** — the retention mechanic. Needs a `subscriptions`
+2. **Alerts / subscriptions** — the retention mechanic. Needs a `subscriptions`
    table (email, lat/lng, radius, filters, verification token, last-sent
    watermark), an email provider, a double-opt-in flow, and a scheduled diff.
-4. Smaller: the deferred per-kind chip row in the count bar (`docs/restyle.md`
-   §5, needs JSX); the TCAD parcel join for the 21% Census `no_match` gap.
+3. Smaller: interactive kind filters; the TCAD parcel join for the 21% Census
+   `no_match` gap.
 
 Done 2026-08-30, after deploy: **restyle applied** (`a966b19`); **`permitKind()`
 keys demolition on `permit_class`** (migration `202608300002`, `acc4543`);
 **Stadia key set, live map working**; **opens on downtown Austin with data**
 (`c8e16b6`); **locate crosshair** inside the address input and on the map,
 sharing `useGeolocate` (`681779c`); **count bar shows "N of M · closest first"**
-when the 500-marker cap bites (migration `202608300003`, `f62d813`). The last two
-are committed locally, not pushed.
+when the 500-marker cap bites (migration `202608300003`, `f62d813`).
+
+UI/map release 2026-08-30: radius and date selects are now
+one-tap segmented controls; the sticky result summary shows the total plus the
+visible demolition/new/remodel/other mix; permit rows show that they open an
+external city record; and compact/mobile spacing has been tightened. Mobile now
+uses normal document scrolling instead of trapping the permit list in a nested
+viewport scroller. The heavy permit-type bars on the left edge of every result
+row have been removed; type remains visible in the row tag, summary, and map.
+The sidebar's horizontal divider rules have also been removed in favor of
+spacing and a quiet controls background; only the useful sidebar/map boundary
+remains on desktop. The masthead now uses a purpose-built yard-sign mark with a
+matching SVG favicon. Radius searches now return two datasets: the 500 closest
+records for the list and up to 1,000 records sampled across a 16x16 grid for the
+canvas-rendered map. The result summary reports mapped and listed counts.
+Migration `202608300004` is applied; the API still has a safe fallback to the
+closest list during partial deployments or database errors. The search circle
+has a draggable edge handle: dragging previews the area, and release snaps to
+the existing 1/4, 1/2, 1, or 2 mile choice before issuing one new query.
+Command-click on macOS or Control-click on Windows/Linux moves the search center
+to that map coordinate without panning the basemap, so the circle visibly moves;
+while the modifier is held, a red ghost perimeter follows the pointer to preview
+the new area. Ordinary map clicks retain their normal behavior. Radius/location
+refreshes clear stale dots immediately and show a compact updating state until
+the new spatial sample arrives, rather than leaving an apparently unchanged map.
 
 ## Watch after the laptop closes
 

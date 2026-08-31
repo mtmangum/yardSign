@@ -24,6 +24,7 @@ const WINDOW_OPTIONS = [
 // slate that asks the user to do something before it shows its worth. They
 // search their own address or hit the locate button from there.
 const DEFAULT_LOCATION: AddressMatch = { label: 'Downtown Austin', lat: 30.2672, lng: -97.7431 }
+const LIST_LIMIT = 500
 
 export default function App() {
   const [location, setLocation] = useState<AddressMatch | null>(DEFAULT_LOCATION)
@@ -33,10 +34,10 @@ export default function App() {
 
   // Memoized so usePermits does not refetch on every unrelated render.
   const query = useMemo<PermitQuery | null>(
-    () => (location ? { lat: location.lat, lng: location.lng, radius, days } : null),
+    () => (location ? { lat: location.lat, lng: location.lng, radius, days, limit: LIST_LIMIT } : null),
     [location, radius, days],
   )
-  const { permits, total, loading, error } = usePermits(query)
+  const { permits, mapPermits, total, loading, error } = usePermits(query)
   const geo = useGeolocate(({ lat, lng }) => setLocation({ label: 'Current location', lat, lng }))
 
   const openPermit = (permit: Permit) => {
@@ -48,16 +49,12 @@ export default function App() {
       <aside className="app__panel">
         <header className="masthead">
           <span className="masthead__mark">
-            {/* A coroplast lawn sign, face-on: hard corners, 2px ink edge, a red
-                bar down the left that rhymes with the .permit list rows. */}
-            <svg className="masthead__sign" viewBox="0 0 26 20" aria-hidden="true" focusable="false">
-              <rect
-                x="1" y="3" width="24" height="14"
-                fill="var(--paper-raised)" stroke="currentColor" strokeWidth="2"
-              />
-              <rect x="2" y="4" width="4" height="12" fill="var(--notice)" />
-              <rect x="9" y="7" width="13" height="2" fill="currentColor" />
-              <rect x="9" y="11" width="8" height="2" fill="currentColor" />
+            <svg className="masthead__sign" viewBox="0 0 38 34" aria-hidden="true" focusable="false">
+              <path className="masthead__stake" d="M9 23v9l2-3V23M28 23v9l2-3V23" />
+              <rect className="masthead__board" x="1" y="1" width="36" height="23" />
+              <rect className="masthead__flag" x="3" y="3" width="11" height="19" />
+              <path className="masthead__monogram" d="m6 8 2.5 4L11 8M8.5 12v5" />
+              <path className="masthead__copy" d="M18 8h14M18 12h11M18 17h7" />
             </svg>
             Yard Sign
           </span>
@@ -72,39 +69,46 @@ export default function App() {
             locating={geo.locating}
             geoError={geo.error}
           />
-          <div className="field__row">
-            <div className="field">
-              <label className="field__label" htmlFor="radius">Radius</label>
-              <select
-                id="radius"
-                className="field__input"
-                value={radius}
-                onChange={(event) => setRadius(Number(event.target.value))}
-              >
+          <div className="field">
+            <span className="field__label" id="radius-label">Radius</span>
+            <div className="segmented" role="radiogroup" aria-labelledby="radius-label">
                 {RADIUS_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
+                <button
+                  type="button"
+                  className="segmented__option"
+                  role="radio"
+                  aria-checked={radius === option.value}
+                  key={option.value}
+                  onClick={() => setRadius(option.value)}
+                >
+                  {option.label}
+                </button>
                 ))}
-              </select>
             </div>
-            <div className="field">
-              <label className="field__label" htmlFor="window">Issued</label>
-              <select
-                id="window"
-                className="field__input"
-                value={days}
-                onChange={(event) => setDays(Number(event.target.value))}
-              >
+          </div>
+          <div className="field">
+            <span className="field__label" id="window-label">Issued</span>
+            <div className="segmented" role="radiogroup" aria-labelledby="window-label">
                 {WINDOW_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
+                <button
+                  type="button"
+                  className="segmented__option"
+                  role="radio"
+                  aria-checked={days === option.value}
+                  key={option.value}
+                  onClick={() => setDays(option.value)}
+                >
+                  {option.label.replace('Last ', '')}
+                </button>
                 ))}
-              </select>
             </div>
           </div>
         </div>
 
         <div className="results">
           <PermitList
-            permits={permits}
+            permits={permits.slice(0, LIST_LIMIT)}
+            mappedCount={mapPermits.length}
             total={total}
             loading={loading}
             error={error}
@@ -119,7 +123,10 @@ export default function App() {
       <PermitMap
         center={location ? { lat: location.lat, lng: location.lng } : null}
         radius={radius}
-        permits={permits}
+        onRadiusChange={setRadius}
+        onCenterChange={(lat, lng) => setLocation({ label: 'Dropped pin', lat, lng })}
+        permits={mapPermits}
+        loading={loading}
         activeId={activeId}
         onHover={setActiveId}
         onLocate={geo.locate}
