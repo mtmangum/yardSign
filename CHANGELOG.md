@@ -1,5 +1,26 @@
 # Changelog
 
+## 2026-08-31
+
+### Security
+
+- `permits_needing_geocode` view is now `security_invoker` (migration
+  `202608300005`). As a SECURITY DEFINER view it bypassed the deny-all RLS on
+  `permits`, so `anon` could read pending permits' address / zip / permit number
+  through it. Clears the Supabase "Security Definer View" advisor.
+
+### Egress
+
+- Client snaps search coordinates to a ~110 m grid, so neighbours checking the
+  same block collapse onto one CDN cache key (and one Supabase query) instead of
+  every distinct address being a cache miss. Also keeps exact addresses out of
+  the cache key.
+- `/api/permits` edge cache raised to 1 h fresh + 1 day stale-while-revalidate
+  (durable), browser cache kept at 5 min. That edge cache is what keeps repeat
+  traffic off Supabase.
+- `permits_near_map` truncates `description` to 300 chars (migration
+  `202608300006`); the sidebar's `permits_near` keeps full text.
+
 ## 2026-08-30
 
 ### Improved

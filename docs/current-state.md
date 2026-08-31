@@ -22,7 +22,7 @@ All under Matt Mangum's personal accounts.
 | Live URL | https://yardsign.city (primary, DNS and HTTPS verified) · https://yardsign-523.netlify.app remains available — GitHub repo connected; a push to `main` builds and publishes |
 | Netlify env | `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `IMPORT_SECRET`, `IMPORT_WINDOW_MONTHS`, `VITE_STADIA_API_KEY` all set. Stadia key is domain-restricted in the Stadia dashboard (localhost + `yardsign-523.netlify.app` + `yardsign.city`) |
 | GitHub | `github.com/mtmangum/yardSign` (public), `main` — local may be ahead of `origin`; unpushed commits are not yet deployed |
-| Migrations applied | `202608300001` (initial), `202608300002` (permit_class in `permits_near()`), `202608300003` (`permits_near_count()`), `202608300004` (grid-distributed map sample) |
+| Migrations applied | `202608300001` initial · `202608300002` permit_class in `permits_near()` · `202608300003` `permits_near_count()` · `202608300004` grid-distributed map sample · `202608300005` geocode view `security_invoker` · `202608300006` trim map `description` |
 | `permits` rows | 84,521, kept fresh by the daily incremental import (07:00 UTC cron) |
 | Geocoded | 66,734 `matched` (79%), 17,787 `no_match` (21%), 0 `pending`, 0 `failed` |
 | Basemap | Stadia Maps "Alidade Smooth" (was CARTO Voyager — CARTO now watermarks keyless tiles) |
@@ -145,6 +145,10 @@ daily incremental.
   total for the same radius/time/filter window.
 - `202608300004_permits_near_map.sql` — grid-distributed map sampling so dense
   center blocks do not consume the marker cap and create a false empty ring.
+- `202608300005_geocode_view_security_invoker.sql` — `permits_needing_geocode`
+  set to `security_invoker` so it stops bypassing the `permits` RLS.
+- `202608300006_permits_near_map_trim_description.sql` — `left(description, 300)`
+  in the map RPC only, to cap marker-payload egress.
 
 - `permits` — one row per `(city_code, permit_number)`, with the raw Socrata row
   kept in `source_payload` so re-deriving a column never requires a re-import.
@@ -164,7 +168,29 @@ daily incremental.
   count bar shows "500 of 1,044 · closest first" when `total` exceeds the rows.
 
 RLS is enabled on both tables with **no policies**, so anon is denied and the
-service key used by the functions bypasses it. Same posture as ScoreScout.
+service key used by the functions bypasses it. Same posture as ScoreScout. The
+one view (`permits_needing_geocode`) is `security_invoker` so it does not defeat
+that (see migration `202608300005`).
+
+## Egress (learn from ScoreScout)
+
+`/api/permits` is the bandwidth hot spot: on a cache miss it pulls
+`permits_near` (500 rows) + `permits_near_map` (~400) + `permits_near_count`
+(one int) from Supabase, ~100-150 KB gzipped. Defences in place:
+
+- **Netlify edge cache** does the heavy lifting - `Netlify-CDN-Cache-Control:
+  s-maxage=3600, stale-while-revalidate=86400, durable`. Confirm with the
+  `cache-status` / `age` response headers; a healthy `hit` ratio means repeat
+  traffic never reaches Supabase.
+- **Client coordinate snapping** to a ~110 m grid (`snap()` in `App.tsx`) so
+  every neighbour on a block shares one cache key instead of generating a miss.
+- `permits_near_map` description capped at 300 chars.
+- Nothing does `select=*` on `permits`, so the fat `source_payload` jsonb never
+  leaves the database.
+
+If traffic grows and egress still climbs, the next lever is a lean marker
+projection (`id`, lat/lng, kind only) with a separate single-row detail fetch on
+popup open, and a Supabase spend cap + billing alert set in the dashboard.
 
 ## What is reused from ScoreScout
 

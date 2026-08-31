@@ -26,8 +26,21 @@ const WINDOW_OPTIONS = [
 const DEFAULT_LOCATION: AddressMatch = { label: 'Downtown Austin', lat: 30.2672, lng: -97.7431 }
 const LIST_LIMIT = 500
 
+// Snap search coordinates to a ~110 m grid so neighbours checking the same block
+// share one CDN cache entry (and one Supabase query) rather than every distinct
+// address / GPS fix being a cache miss - this is the main lever on egress. It
+// also keeps exact addresses out of the cache key. The map pin and the radius
+// circle use the same snapped point, so nothing visually drifts.
+const snap = (value: number) => Math.round(value * 1000) / 1000
+const snapLocation = (match: AddressMatch): AddressMatch => ({
+  ...match,
+  lat: snap(match.lat),
+  lng: snap(match.lng),
+})
+
 export default function App() {
-  const [location, setLocation] = useState<AddressMatch | null>(DEFAULT_LOCATION)
+  const [location, setLocationState] = useState<AddressMatch | null>(snapLocation(DEFAULT_LOCATION))
+  const setLocation = (match: AddressMatch) => setLocationState(snapLocation(match))
   const [radius, setRadius] = useState(1609)
   const [days, setDays] = useState(180)
   const [hoveredId, setHoveredId] = useState<string | null>(null)

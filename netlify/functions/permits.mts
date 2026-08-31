@@ -75,7 +75,13 @@ export default async (request: Request) => {
     return new Response(JSON.stringify({ permits, mapPermits, total, center: { lat, lng }, radius, days }), {
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=300, stale-while-revalidate=3600',
+        // Permit data only changes once a day (the 07:00 UTC import). Let the
+        // browser hold a result for 5 min, but let Netlify's edge cache hold it
+        // an hour and serve it stale for a day while revalidating - that edge
+        // cache is what keeps repeat traffic off Supabase. Coordinates are
+        // snapped client-side, so nearby searches collapse onto one cache key.
+        'Cache-Control': 'public, max-age=300',
+        'Netlify-CDN-Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400, durable',
       },
     })
   } catch (error) {
