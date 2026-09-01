@@ -68,12 +68,16 @@
 
 ### Fixed
 
-- A shared `?p=` card link with no search area of its own (e.g. a permit clicked
-  from the default downtown view) resolved to a raw `?ll=<lat,lng>` pin. It now
-  anchors on the permit's own address, geocoded to the canonical label, so the
-  URL settles on the same `/address-slug?p=…` form as any other search. The URL
-  rewrite is also held until the permit resolves, so `?p=` isn't dropped and
-  re-added in the gap.
+- An open card now owns the URL path — `/1204-northridge-dr?p=…` — so every
+  marker has its own shareable link that reads as the permit's own address.
+  Previously the path stuck on the search location (or, for a bare `?p=` link,
+  on whichever permit was opened first, which had been promoted to the search
+  location), and every subsequent marker only swapped the `?p=` behind the same
+  path. Closing the card falls back to the real search location; reopening a
+  per-marker link re-centres on that permit. A bare `?p=` link with no search
+  area still resolves to the permit's geocoded address rather than a raw
+  `?ll=<lat,lng>` pin, and the URL rewrite is held until the permit resolves so
+  `?p=` isn't dropped and re-added in the gap.
 - Recreate Leaflet permit popups when crossing the mobile breakpoint so their
   top safe-area padding remains correct after resize or device rotation.
 

@@ -53,7 +53,9 @@ export default function App() {
   // normalised label so the URL rewrites to the canonical slug; drop to the
   // default view with a note if it can't be placed.
   useEffect(() => {
-    if (!initial.address || initial.ll) return
+    // When ?p= is present the permit effect below owns the centre (the path
+    // address just names the card).
+    if (!initial.address || initial.ll || initial.permit) return
     let cancelled = false
     geocodeAddress(initial.address).then((matches) => {
       if (cancelled) return
@@ -79,11 +81,10 @@ export default function App() {
       if (cancelled) return
       if (permit) {
         setSelectedPermit(permit)
-        if (!initial.address && !initial.ll) {
-          // A bare ?p= link. Anchor on the permit's own address - geocoded to
-          // the canonical label - so the URL settles on the same slug a normal
-          // search would, not a raw ?ll= pin. Fall back to a pin if the
-          // address can't be placed.
+        if (!initial.ll) {
+          // The path names the permit, so centre on the permit. Geocode its
+          // address for a clean label (canonical slug, zip-aware features),
+          // fall back to its stored coordinates.
           const [match] = permit.address ? await geocodeAddress(permit.address) : []
           if (cancelled) return
           if (match) {
@@ -128,6 +129,7 @@ export default function App() {
       days,
       kinds: activeKinds,
       permit: selectedPermit?.permit_number ?? null,
+      cardAddress: selectedPermit?.address ?? null,
     })
     const placeKey = `${locationSource}:${location?.lat ?? ''},${location?.lng ?? ''}`
     const newPlace = urlWriteMounted.current && placeKey !== lastPlaceKey.current

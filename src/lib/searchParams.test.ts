@@ -61,6 +61,17 @@ describe('toUrl', () => {
     })).toBe('/1100-congress-ave?r=402&k=remodel&p=2025-1+BP')
   })
 
+  it('lets the open card own the path so each marker gets its own URL', () => {
+    expect(toUrl({
+      ...base,
+      source: 'address',
+      address: '1412 NORTHRIDGE DR, AUSTIN, TX, 78723',
+      ll: [30.27, -97.74],
+      permit: '2026-101588 EP',
+      cardAddress: '1204 NORTHRIDGE DR',
+    })).toBe('/1204-northridge-dr?p=2026-101588+EP')
+  })
+
   it('keeps non-default filters even for the default location', () => {
     expect(toUrl({ ...base, source: 'default', radius: 402, kinds: ['remodel'] })).toBe('/?r=402&k=remodel')
   })

@@ -47,7 +47,13 @@ export function parseUrl(pathname: string, search: string): SearchState {
 
 /** Build the shareable URL: an address search becomes a path slug, a pin/GPS
  *  search a ?ll=, the default view the bare "/". Radius / window / filters /
- *  open-card ride along as query params. */
+ *  open-card ride along as query params.
+ *
+ *  An open card wins the path - a shared link reads as that permit's own
+ *  address (`/1204-northridge-dr?p=…`), not the search area it was found from -
+ *  so every marker gets its own URL. Closing the card falls back to the search
+ *  location. `?ll=` is dropped while a card drives the path; reopening the link
+ *  re-centres on the permit. */
 export function toUrl(input: {
   source: LocationSource
   address: string | null
@@ -56,11 +62,15 @@ export function toUrl(input: {
   days: number
   kinds: PermitKind[]
   permit?: string | null
+  /** Street address of the open card, if any. */
+  cardAddress?: string | null
 }): string {
   const p = new URLSearchParams()
 
   let path = '/'
-  if (input.source === 'address' && input.address) {
+  if (input.permit && input.cardAddress) {
+    path = `/${toAddressSlug(input.cardAddress)}`
+  } else if (input.source === 'address' && input.address) {
     path = `/${toAddressSlug(input.address)}`
   } else if ((input.source === 'pin' || input.source === 'geo') && input.ll) {
     p.set('ll', `${input.ll[0]},${input.ll[1]}`)
