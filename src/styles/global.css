@@ -573,6 +573,9 @@ button, input, select { font: inherit; color: inherit; }
 .app__map .leaflet-popup-content { margin: 0; width: 400px !important; }
 .app__map .leaflet-popup-content-wrapper { padding: 0; border-radius: 0; overflow: hidden; }
 .app__map .leaflet-popup-pane { z-index: 1100; }
+/* Leaflet's stylesheet puts 1.3em above and below every popup <p>; the popup
+   sets its own rhythm. */
+.app__map .leaflet-popup-content p { margin: 7px 0 0; }
 
 .map__popup { padding: 14px 30px 13px 20px; color: #201e1d; }
 .map__popup-eyebrow { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
@@ -592,13 +595,11 @@ button, input, select { font: inherit; color: inherit; }
 .map__popup-distance { padding-top: 2px; color: #6b6660; font-family: var(--font-mono); font-size: 9px; white-space: nowrap; }
 .map__popup h3 { margin: 11px 0 0; font-size: 16px; letter-spacing: -0.02em; line-height: 1.2; }
 .map__popup-class {
-  margin: 5px 0 0;
   color: #201e1d;
   font-size: 12px;
   font-weight: 600;
 }
 .map__popup-description {
-  margin: 7px 0 0;
   color: #6b6660;
   font-size: 12px;
   line-height: 1.45;
