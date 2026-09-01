@@ -32,9 +32,10 @@ and dropped pins use `?ll=<lat,lng>`, and radius / issued window / kind filters 
 open card ride along as `?r= ?d= ?k= ?p=`. Results are shareable and
 back/forward walks between searches.
 
-On desktop, drag the handle on the circle edge to resize the search area. Hold
-Command (macOS) or Control (Windows/Linux) to preview a ghost circle, then click
-the map to move the search center without panning the basemap.
+Drag the pin at the centre of the search circle to move the search; drag the
+handle on the circle edge to resize it. On desktop you can also hold Command
+(macOS) or Control (Windows/Linux) to preview a ghost circle and click to move
+the centre without panning the basemap; on touch, press and hold the map.
 
 ## Data
 

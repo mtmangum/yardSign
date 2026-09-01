@@ -2,6 +2,7 @@ import { useRef } from 'react'
 import { MapContainer, TileLayer } from 'react-leaflet'
 import type { Permit } from '../../api/permits'
 import { useIsNarrow } from '../../hooks/useIsNarrow'
+import { CenterPin } from './CenterPin'
 import { MoveSearchArea } from './MoveSearchArea'
 import { PermitMarker } from './PermitMarker'
 import { RadiusHandle } from './RadiusHandle'
@@ -79,6 +80,15 @@ export function PermitMap({
           <>
             <Recenter lat={center.lat} lng={center.lng} radius={radius} skipNextFit={skipNextFit} />
             <RadiusHandle lat={center.lat} lng={center.lng} radius={radius} onRadiusChange={onRadiusChange} />
+            <CenterPin
+              lat={center.lat}
+              lng={center.lng}
+              radius={radius}
+              onCommit={(lat, lng) => {
+                skipNextFit.current = true
+                onCenterChange(lat, lng)
+              }}
+            />
           </>
         )}
 
@@ -98,7 +108,6 @@ export function PermitMap({
       </MapContainer>
 
       {loading && <div className="map__loading" role="status">Updating map…</div>}
-      <div className="map__move-hint">⌘/Ctrl-click map to move search</div>
       <div className="map__touch-hint">Press and hold map to move search</div>
       <MapLegend />
     </div>

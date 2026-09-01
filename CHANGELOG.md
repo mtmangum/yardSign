@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-09-01
+
+### Added
+
+- Draggable centre pin. The search centre is now a grab-and-drag pin on the
+  map — the discoverable way to move the search, where before the only ways
+  were ⌘/Ctrl-click or a press-and-hold gesture behind a hint. Dragging
+  previews the new area with the same red dashed perimeter those gestures use;
+  releasing commits it. Those gestures still work; the always-on "⌘/Ctrl-click
+  map to move search" hint is gone.
+
 ## 2026-08-31
 
 ### Added

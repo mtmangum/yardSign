@@ -466,6 +466,22 @@ button, input, select { font: inherit; color: inherit; }
   transform: scale(1.12);
 }
 
+/* The search centre, as a grab-and-drag pin. Ochre = the interaction colour;
+   distinct from the kind-coloured permit dots and the red drag preview. */
+.center-pin { cursor: grab; }
+.center-pin:active,
+.center-pin.leaflet-drag-target { cursor: grabbing; }
+.center-pin svg {
+  display: block;
+  filter: drop-shadow(0 2px 3px rgba(32, 30, 29, 0.4));
+  transition: transform 90ms ease-out;
+  transform-origin: 50% 100%;
+}
+.center-pin:hover svg,
+.center-pin.leaflet-drag-target svg { transform: scale(1.08); }
+.center-pin__body { fill: var(--accent); stroke: #ffffff; stroke-width: 1.75; }
+.center-pin__eye { fill: #ffffff; }
+
 .radius-tooltip {
   padding: 7px 9px;
   border: 1px solid #201e1d;
@@ -530,21 +546,6 @@ button, input, select { font: inherit; color: inherit; }
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  pointer-events: none;
-}
-
-.map__move-hint {
-  position: absolute;
-  left: 12px;
-  bottom: 22px;
-  z-index: 500;
-  padding: 6px 8px;
-  background: rgba(255, 255, 255, 0.92);
-  color: #6b6660;
-  border: 1px solid rgba(32, 30, 29, 0.3);
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.02em;
   pointer-events: none;
 }
 
@@ -657,7 +658,6 @@ button, input, select { font: inherit; color: inherit; }
     font-size: 22px !important;
     line-height: 44px !important;
   }
-  .map__move-hint { display: none; }
   .map__geo-error { top: 62px; }
 }
 
