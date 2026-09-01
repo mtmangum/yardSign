@@ -4,6 +4,13 @@
 
 ### Added
 
+- Searches are now in the URL and shareable. An address search writes
+  `?q=<address>` (human-readable); the locate button and dropped pins write
+  `?ll=<lat,lng>` since they have no address. Radius, issued window and kind
+  filters ride along as `&r= &d= &k=`. Opening a `?q=` link geocodes it on load
+  (CDN-cached), falling back to the default view if the address can't be placed.
+  A new place pushes a history entry so back/forward walks between searches; a
+  filter tweak just replaces. The bare domain stays parameter-free.
 - The Demolition / New / Remodel / Other chips in the result summary are now
   filter toggles (multi-select; a "Clear" appears while any are active). The
   filter runs in SQL — a new `permit_kind_of()` immutable function feeds a

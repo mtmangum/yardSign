@@ -1,12 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AddressSearch } from './components/AddressSearch'
 import { PermitList } from './components/PermitList'
 import { PermitMap } from './components/map/PermitMap'
 import { usePermits } from './hooks/usePermits'
 import { useGeolocate } from './hooks/useGeolocate'
-import { DEFAULT_RADIUS, RADIUS_CHOICES, snapLocation } from './lib/geo'
+import { RADIUS_CHOICES, snapLocation } from './lib/geo'
 import type { PermitKind } from './lib/permitKind'
-import type { AddressMatch, Permit, PermitQuery } from './api/permits'
+import { type LocationSource, parseSearchState, toSearchString } from './lib/searchParams'
+import { geocodeAddress, type AddressMatch, type Permit, type PermitQuery } from './api/permits'
 
 const WINDOW_OPTIONS = [
   { label: 'Last 30 days', value: 30 },
@@ -22,14 +23,106 @@ const DEFAULT_LOCATION: AddressMatch = { label: 'Downtown Austin', lat: 30.2672,
 const LIST_LIMIT = 500
 
 export default function App() {
-  const [location, setLocationState] = useState<AddressMatch | null>(snapLocation(DEFAULT_LOCATION))
-  const setLocation = (match: AddressMatch) => setLocationState(snapLocation(match))
-  const [radius, setRadius] = useState(DEFAULT_RADIUS)
-  const [days, setDays] = useState(180)
+  // The URL is the source of truth for a search on load and on back/forward.
+  const [initial] = useState(() => parseSearchState(window.location.search))
+
+  const [location, setLocationState] = useState<AddressMatch | null>(
+    initial.ll
+      ? snapLocation({ label: 'Map location', lat: initial.ll[0], lng: initial.ll[1] })
+      : initial.address
+        ? null // resolved by the geocode effect below
+        : snapLocation(DEFAULT_LOCATION),
+  )
+  const [locationSource, setLocationSource] = useState<LocationSource>(
+    initial.address ? 'address' : initial.ll ? 'pin' : 'default',
+  )
+  const setLocation = (match: AddressMatch, source: LocationSource) => {
+    setLocationSource(source)
+    setLocationState(snapLocation(match))
+  }
+
+  const [radius, setRadius] = useState(initial.radius)
+  const [days, setDays] = useState(initial.days)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [selectedPermit, setSelectedPermit] = useState<Permit | null>(null)
   const [mobileView, setMobileView] = useState<'map' | 'list'>('map')
-  const [activeKinds, setActiveKinds] = useState<PermitKind[]>([])
+  const [activeKinds, setActiveKinds] = useState<PermitKind[]>(initial.kinds)
+
+  // Resolve a ?q=<address> from the URL. Fall back to the default view if the
+  // Census geocoder can't place it.
+  useEffect(() => {
+    if (!initial.address || initial.ll) return
+    let cancelled = false
+    geocodeAddress(initial.address).then((matches) => {
+      if (cancelled) return
+      if (matches[0]) {
+        setLocationState(snapLocation({ label: initial.address as string, lat: matches[0].lat, lng: matches[0].lng }))
+      } else {
+        console.warn(`Could not geocode shared address: ${initial.address}`)
+        setLocationSource('default')
+        setLocationState(snapLocation(DEFAULT_LOCATION))
+      }
+    })
+    return () => { cancelled = true }
+  }, [initial])
+
+  // Reflect the search into the URL: a new place pushes a history entry (so
+  // back/forward walks between searches), a filter tweak on the same place just
+  // replaces it (no history spam).
+  const skipNextUrlWrite = useRef(false)
+  const lastPlaceKey = useRef('')
+  const urlWriteMounted = useRef(false)
+  useEffect(() => {
+    if (skipNextUrlWrite.current) {
+      skipNextUrlWrite.current = false
+      return
+    }
+    // A shared ?q= is still being geocoded - don't blow the address out of the
+    // URL in the gap.
+    if (locationSource === 'address' && !location) return
+
+    const next = toSearchString({
+      source: locationSource,
+      address: location?.label ?? null,
+      ll: location ? [location.lat, location.lng] : null,
+      radius,
+      days,
+      kinds: activeKinds,
+    })
+    const placeKey = `${locationSource}:${location?.lat ?? ''},${location?.lng ?? ''}`
+    const newPlace = urlWriteMounted.current && placeKey !== lastPlaceKey.current
+    lastPlaceKey.current = placeKey
+    urlWriteMounted.current = true
+
+    if (next === window.location.pathname + window.location.search) return
+    window.history[newPlace ? 'pushState' : 'replaceState'](null, '', next)
+  }, [location, locationSource, radius, days, activeKinds])
+
+  // Back/forward: re-read the URL into state.
+  useEffect(() => {
+    const onPop = () => {
+      const s = parseSearchState(window.location.search)
+      skipNextUrlWrite.current = true
+      setRadius(s.radius)
+      setDays(s.days)
+      setActiveKinds(s.kinds)
+      setSelectedPermit(null)
+      if (s.ll) {
+        setLocationSource('pin')
+        setLocationState(snapLocation({ label: 'Map location', lat: s.ll[0], lng: s.ll[1] }))
+      } else if (s.address) {
+        setLocationSource('address')
+        geocodeAddress(s.address).then((m) => {
+          if (m[0]) setLocationState(snapLocation({ label: s.address as string, lat: m[0].lat, lng: m[0].lng }))
+        })
+      } else {
+        setLocationSource('default')
+        setLocationState(snapLocation(DEFAULT_LOCATION))
+      }
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
 
   // Memoized so usePermits does not refetch on every unrelated render.
   const query = useMemo<PermitQuery | null>(
@@ -39,7 +132,7 @@ export default function App() {
   const { permits, mapPermits, total, loading, error } = usePermits(query)
   const geo = useGeolocate(({ lat, lng }) => {
     setSelectedPermit(null)
-    setLocation({ label: 'Current location', lat, lng })
+    setLocation({ label: 'Current location', lat, lng }, 'geo')
     setMobileView('map')
   })
   const activeId = hoveredId ?? selectedPermit?.id ?? null
@@ -106,7 +199,7 @@ export default function App() {
           <AddressSearch
             onSelect={(match) => {
               setSelectedPermit(null)
-              setLocation(match)
+              setLocation(match, 'address')
               setMobileView('map')
             }}
             selectedLabel={location?.label ?? null}
@@ -184,7 +277,7 @@ export default function App() {
         }}
         onCenterChange={(lat, lng) => {
           setSelectedPermit(null)
-          setLocation({ label: 'Dropped pin', lat, lng })
+          setLocation({ label: 'Dropped pin', lat, lng }, 'pin')
         }}
         permits={mappedPermits}
         loading={loading}

@@ -23,6 +23,10 @@ near the perimeter.
 Clicking a listing opens that permit's card on the map rather than navigating
 away; each listing has a separate link to the City of Austin permit record.
 
+The search lives in the URL — `?q=<address>&r=<radius>&d=<days>&k=<kinds>` for an
+address search, `?ll=<lat,lng>&…` for the locate button or a dropped pin — so a
+result is shareable and back/forward walks between searches.
+
 On desktop, drag the handle on the circle edge to resize the search area. Hold
 Command (macOS) or Control (Windows/Linux) to preview a ghost circle, then click
 the map to move the search center without panning the basemap.
