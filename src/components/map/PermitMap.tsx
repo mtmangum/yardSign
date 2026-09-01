@@ -84,6 +84,7 @@ export function PermitMap({
             key={permit.id}
             permit={permit}
             active={activeId === permit.id}
+            narrow={narrow}
             popupTopPadding={popupTopPadding}
             onHover={onHover}
             onSelect={onSelectPermit}

@@ -4,10 +4,11 @@ import { formatDate, formatDistance, formatValuation } from '../../lib/format'
 import { KIND_COLOR, permitKind } from '../../lib/permitKind'
 
 export function PermitMarker({
-  permit, active, popupTopPadding, onHover, onSelect,
+  permit, active, narrow, popupTopPadding, onHover, onSelect,
 }: {
   permit: Permit
   active: boolean
+  narrow: boolean
   popupTopPadding: [number, number]
   onHover: (id: string | null) => void
   onSelect: (permit: Permit) => void
@@ -33,6 +34,7 @@ export function PermitMarker({
       }}
     >
       <Popup
+        key={narrow ? 'narrow' : 'wide'}
         minWidth={380}
         maxWidth={440}
         autoPanPaddingTopLeft={popupTopPadding}

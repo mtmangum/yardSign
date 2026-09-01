@@ -12,6 +12,11 @@
   `snapLocation`, `inAustin`, `nearestRadiusStep`). New `useIsNarrow` hook
   replaces render-time `window.innerWidth` reads. No behaviour change.
 
+### Fixed
+
+- Recreate Leaflet permit popups when crossing the mobile breakpoint so their
+  top safe-area padding remains correct after resize or device rotation.
+
 ### Security
 
 - `permits_needing_geocode` view is now `security_invoker` (migration

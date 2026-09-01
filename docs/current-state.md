@@ -315,7 +315,9 @@ Leaflet's hidden layout size. The selected row quickly aligns below the fixed
 switcher at the top of the List view using a 220 ms scroll. Mobile view, zoom,
 locate, and popup-close controls use touch-friendly targets. Mobile popups use a
 164 px top safe area, so Leaflet pans their cards below the complete control
-stack instead of allowing an overlap. The search circle is fitted without
+stack instead of allowing an overlap. Popups remount when the responsive layout
+crosses 860 px because React-Leaflet only reads auto-pan options when constructing
+the popup; this keeps the safe area correct after resize or rotation. The search circle is fitted without
 horizontal map padding on mobile so its perimeter reaches the viewport edges.
 
 ## Watch after the laptop closes
