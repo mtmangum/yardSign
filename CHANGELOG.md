@@ -68,6 +68,12 @@
 
 ### Fixed
 
+- A shared `?p=` card link with no search area of its own (e.g. a permit clicked
+  from the default downtown view) resolved to a raw `?ll=<lat,lng>` pin. It now
+  anchors on the permit's own address, geocoded to the canonical label, so the
+  URL settles on the same `/address-slug?p=…` form as any other search. The URL
+  rewrite is also held until the permit resolves, so `?p=` isn't dropped and
+  re-added in the gap.
 - Recreate Leaflet permit popups when crossing the mobile breakpoint so their
   top safe-area padding remains correct after resize or device rotation.
 

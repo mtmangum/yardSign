@@ -68,21 +68,36 @@ export default function App() {
     return () => { cancelled = true }
   }, [initial])
 
-  // Resolve a ?p=<permit number> from the URL - open its card, and centre on it
-  // when the link carried no area of its own.
+  // Resolve a ?p=<permit number> from the URL - open its card, and anchor the
+  // view on it when the link carried no area of its own.
+  const [permitResolved, setPermitResolved] = useState(!initial.permit)
   useEffect(() => {
     if (!initial.permit) return
     let cancelled = false
     const near = initial.ll ? { lat: initial.ll[0], lng: initial.ll[1] } : undefined
-    fetchPermit(initial.permit, near).then((permit) => {
-      if (cancelled || !permit) return
-      setSelectedPermit(permit)
-      if (!initial.address && !initial.ll) {
-        setLocationSource('pin')
-        setLocationState(snapLocation({
-          label: permit.address ?? 'Shared permit', lat: permit.latitude, lng: permit.longitude,
-        }))
+    fetchPermit(initial.permit, near).then(async (permit) => {
+      if (cancelled) return
+      if (permit) {
+        setSelectedPermit(permit)
+        if (!initial.address && !initial.ll) {
+          // A bare ?p= link. Anchor on the permit's own address - geocoded to
+          // the canonical label - so the URL settles on the same slug a normal
+          // search would, not a raw ?ll= pin. Fall back to a pin if the
+          // address can't be placed.
+          const [match] = permit.address ? await geocodeAddress(permit.address) : []
+          if (cancelled) return
+          if (match) {
+            setLocationSource('address')
+            setLocationState(snapLocation(match))
+          } else {
+            setLocationSource('pin')
+            setLocationState(snapLocation({
+              label: permit.address ?? 'Shared permit', lat: permit.latitude, lng: permit.longitude,
+            }))
+          }
+        }
       }
+      setPermitResolved(true)
     })
     return () => { cancelled = true }
   }, [initial])
@@ -101,6 +116,9 @@ export default function App() {
     // A shared address is still being geocoded - don't blow it out of the URL
     // in the gap.
     if (locationSource === 'address' && !location) return
+    // A shared ?p= link hasn't resolved yet - hold the URL so it isn't
+    // rewritten without the permit and then rewritten again once it lands.
+    if (!permitResolved) return
 
     const next = toUrl({
       source: locationSource,
@@ -118,7 +136,7 @@ export default function App() {
 
     if (next === window.location.pathname + window.location.search) return
     window.history[newPlace ? 'pushState' : 'replaceState'](null, '', next)
-  }, [location, locationSource, radius, days, activeKinds, selectedPermit])
+  }, [location, locationSource, radius, days, activeKinds, selectedPermit, permitResolved])
 
   // Back/forward: re-read the URL into state.
   useEffect(() => {
