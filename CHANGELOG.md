@@ -4,13 +4,18 @@
 
 ### Added
 
-- Searches are now in the URL and shareable. An address search writes
-  `?q=<address>` (human-readable); the locate button and dropped pins write
-  `?ll=<lat,lng>` since they have no address. Radius, issued window and kind
-  filters ride along as `&r= &d= &k=`. Opening a `?q=` link geocodes it on load
-  (CDN-cached), falling back to the default view if the address can't be placed.
+- Searches are now in the URL and shareable. An address search becomes a path
+  slug — `/1412-northridge-dr-austin-tx-78723` — of the geocoder's normalised
+  address; a hand-typed or partial slug rewrites to the canonical one on load,
+  and an unplaceable one drops to the default view with a note. The locate
+  button and dropped pins use `?ll=<lat,lng>` (no address to name). Radius,
+  issued window, kind filters and the open card ride along as `?r= ?d= ?k= ?p=`.
   A new place pushes a history entry so back/forward walks between searches; a
-  filter tweak just replaces. The bare domain stays parameter-free.
+  filter tweak just replaces. The bare domain stays parameter-free. Legacy
+  `?q=<address>` links are still read.
+- Shareable open card: selecting a permit adds `?p=<permit number>`; opening
+  such a link fetches that one permit (new `/api/permit` endpoint), centres on
+  it and opens its card. Closing the popup (× or Esc) drops `?p=`.
 - The Demolition / New / Remodel / Other chips in the result summary are now
   filter toggles (multi-select; a "Clear" appears while any are active). The
   filter runs in SQL — a new `permit_kind_of()` immutable function feeds a

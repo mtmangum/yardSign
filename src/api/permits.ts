@@ -65,6 +65,24 @@ export async function fetchPermits(query: PermitQuery, signal?: AbortSignal): Pr
   }
 }
 
+/** One permit by its city permit number, for opening a shared card. `near`
+ *  fills distance_m relative to the current search centre. */
+export async function fetchPermit(
+  permitNumber: string,
+  near?: { lat: number; lng: number },
+  signal?: AbortSignal,
+): Promise<Permit | null> {
+  const params = new URLSearchParams({ number: permitNumber })
+  if (near) {
+    params.set('lat', String(near.lat))
+    params.set('lng', String(near.lng))
+  }
+  const response = await fetch(`/api/permit?${params}`, { signal })
+  if (!response.ok) return null
+  const payload = (await response.json()) as { permit?: Permit }
+  return payload.permit ?? null
+}
+
 export async function geocodeAddress(query: string, signal?: AbortSignal): Promise<AddressMatch[]> {
   const response = await fetch(`/api/geocode-address?q=${encodeURIComponent(query)}`, { signal })
   if (!response.ok) return []

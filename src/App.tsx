@@ -6,8 +6,8 @@ import { usePermits } from './hooks/usePermits'
 import { useGeolocate } from './hooks/useGeolocate'
 import { RADIUS_CHOICES, snapLocation } from './lib/geo'
 import type { PermitKind } from './lib/permitKind'
-import { type LocationSource, parseSearchState, toSearchString } from './lib/searchParams'
-import { geocodeAddress, type AddressMatch, type Permit, type PermitQuery } from './api/permits'
+import { type LocationSource, parseUrl, toUrl } from './lib/searchParams'
+import { fetchPermit, geocodeAddress, type AddressMatch, type Permit, type PermitQuery } from './api/permits'
 
 const WINDOW_OPTIONS = [
   { label: 'Last 30 days', value: 30 },
@@ -24,7 +24,7 @@ const LIST_LIMIT = 500
 
 export default function App() {
   // The URL is the source of truth for a search on load and on back/forward.
-  const [initial] = useState(() => parseSearchState(window.location.search))
+  const [initial] = useState(() => parseUrl(window.location.pathname, window.location.search))
 
   const [location, setLocationState] = useState<AddressMatch | null>(
     initial.ll
@@ -47,20 +47,41 @@ export default function App() {
   const [selectedPermit, setSelectedPermit] = useState<Permit | null>(null)
   const [mobileView, setMobileView] = useState<'map' | 'list'>('map')
   const [activeKinds, setActiveKinds] = useState<PermitKind[]>(initial.kinds)
+  const [addressError, setAddressError] = useState<string | null>(null)
 
-  // Resolve a ?q=<address> from the URL. Fall back to the default view if the
-  // Census geocoder can't place it.
+  // Resolve the address from the URL path (or a legacy ?q=). Use the geocoder's
+  // normalised label so the URL rewrites to the canonical slug; drop to the
+  // default view with a note if it can't be placed.
   useEffect(() => {
     if (!initial.address || initial.ll) return
     let cancelled = false
     geocodeAddress(initial.address).then((matches) => {
       if (cancelled) return
       if (matches[0]) {
-        setLocationState(snapLocation({ label: initial.address as string, lat: matches[0].lat, lng: matches[0].lng }))
+        setLocationState(snapLocation({ label: matches[0].label, lat: matches[0].lat, lng: matches[0].lng }))
       } else {
-        console.warn(`Could not geocode shared address: ${initial.address}`)
+        setAddressError(`Couldn't find "${initial.address}". Try searching again.`)
         setLocationSource('default')
         setLocationState(snapLocation(DEFAULT_LOCATION))
+      }
+    })
+    return () => { cancelled = true }
+  }, [initial])
+
+  // Resolve a ?p=<permit number> from the URL - open its card, and centre on it
+  // when the link carried no area of its own.
+  useEffect(() => {
+    if (!initial.permit) return
+    let cancelled = false
+    const near = initial.ll ? { lat: initial.ll[0], lng: initial.ll[1] } : undefined
+    fetchPermit(initial.permit, near).then((permit) => {
+      if (cancelled || !permit) return
+      setSelectedPermit(permit)
+      if (!initial.address && !initial.ll) {
+        setLocationSource('pin')
+        setLocationState(snapLocation({
+          label: permit.address ?? 'Shared permit', lat: permit.latitude, lng: permit.longitude,
+        }))
       }
     })
     return () => { cancelled = true }
@@ -77,17 +98,18 @@ export default function App() {
       skipNextUrlWrite.current = false
       return
     }
-    // A shared ?q= is still being geocoded - don't blow the address out of the
-    // URL in the gap.
+    // A shared address is still being geocoded - don't blow it out of the URL
+    // in the gap.
     if (locationSource === 'address' && !location) return
 
-    const next = toSearchString({
+    const next = toUrl({
       source: locationSource,
       address: location?.label ?? null,
       ll: location ? [location.lat, location.lng] : null,
       radius,
       days,
       kinds: activeKinds,
+      permit: selectedPermit?.permit_number ?? null,
     })
     const placeKey = `${locationSource}:${location?.lat ?? ''},${location?.lng ?? ''}`
     const newPlace = urlWriteMounted.current && placeKey !== lastPlaceKey.current
@@ -96,24 +118,28 @@ export default function App() {
 
     if (next === window.location.pathname + window.location.search) return
     window.history[newPlace ? 'pushState' : 'replaceState'](null, '', next)
-  }, [location, locationSource, radius, days, activeKinds])
+  }, [location, locationSource, radius, days, activeKinds, selectedPermit])
 
   // Back/forward: re-read the URL into state.
   useEffect(() => {
     const onPop = () => {
-      const s = parseSearchState(window.location.search)
+      const s = parseUrl(window.location.pathname, window.location.search)
       skipNextUrlWrite.current = true
       setRadius(s.radius)
       setDays(s.days)
       setActiveKinds(s.kinds)
       setSelectedPermit(null)
+      if (s.permit) {
+        const near = s.ll ? { lat: s.ll[0], lng: s.ll[1] } : undefined
+        fetchPermit(s.permit, near).then((permit) => permit && setSelectedPermit(permit))
+      }
       if (s.ll) {
         setLocationSource('pin')
         setLocationState(snapLocation({ label: 'Map location', lat: s.ll[0], lng: s.ll[1] }))
       } else if (s.address) {
         setLocationSource('address')
         geocodeAddress(s.address).then((m) => {
-          if (m[0]) setLocationState(snapLocation({ label: s.address as string, lat: m[0].lat, lng: m[0].lng }))
+          if (m[0]) setLocationState(snapLocation({ label: m[0].label, lat: m[0].lat, lng: m[0].lng }))
         })
       } else {
         setLocationSource('default')
@@ -198,6 +224,7 @@ export default function App() {
         <div className="controls">
           <AddressSearch
             onSelect={(match) => {
+              setAddressError(null)
               setSelectedPermit(null)
               setLocation(match, 'address')
               setMobileView('map')
@@ -205,7 +232,7 @@ export default function App() {
             selectedLabel={location?.label ?? null}
             onLocate={geo.locate}
             locating={geo.locating}
-            geoError={geo.error}
+            geoError={geo.error ?? addressError}
           />
           <div className="field">
             <span className="field__label" id="radius-label">Radius</span>
@@ -286,6 +313,7 @@ export default function App() {
         selectedId={selectedPermit?.id ?? null}
         onHover={setHoveredId}
         onSelectPermit={selectPermit}
+        onDeselectPermit={() => setSelectedPermit(null)}
         onLocate={geo.locate}
         locating={geo.locating}
         geoError={geo.error}

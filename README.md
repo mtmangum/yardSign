@@ -23,9 +23,11 @@ near the perimeter.
 Clicking a listing opens that permit's card on the map rather than navigating
 away; each listing has a separate link to the City of Austin permit record.
 
-The search lives in the URL — `?q=<address>&r=<radius>&d=<days>&k=<kinds>` for an
-address search, `?ll=<lat,lng>&…` for the locate button or a dropped pin — so a
-result is shareable and back/forward walks between searches.
+The search lives in the URL — an address search becomes a path slug like
+`/1412-northridge-dr-austin-tx-78723` (canonicalised on load), the locate button
+and dropped pins use `?ll=<lat,lng>`, and radius / issued window / kind filters /
+open card ride along as `?r= ?d= ?k= ?p=`. Results are shareable and
+back/forward walks between searches.
 
 On desktop, drag the handle on the circle edge to resize the search area. Hold
 Command (macOS) or Control (Windows/Linux) to preview a ghost circle, then click
@@ -69,6 +71,7 @@ supabase db push
 | `geocode-census-batch-background` | manual, `GET /api/geocode-census-batch` | Bulk-geocode via the Census address-batch endpoint (CSV upload). Used for the initial backfill — ~85k rows in minutes |
 | `geocode-census-background` | manual, `GET /api/geocode-census` | One-at-a-time geocode for the small daily incremental |
 | `permits` | `GET /api/permits` | Closest-first list, grid-distributed map sample, and uncapped total via Supabase SQL functions |
+| `permit` | `GET /api/permit?number=…` | One permit by its city number, for opening a shared `?p=` card |
 | `geocode-address` | `GET /api/geocode-address` | Address autocomplete for the search box |
 
 The initial backfill is done (66,734 of 84,521 matched, 2026-08-30). To

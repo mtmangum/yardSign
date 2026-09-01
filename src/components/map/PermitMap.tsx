@@ -32,6 +32,7 @@ interface PermitMapProps {
   selectedId: string | null
   onHover: (id: string | null) => void
   onSelectPermit: (permit: Permit) => void
+  onDeselectPermit: () => void
   onLocate: () => void
   locating: boolean
   geoError: string | null
@@ -39,7 +40,7 @@ interface PermitMapProps {
 
 export function PermitMap({
   center, radius, onRadiusChange, onCenterChange, permits, loading, active, activeId, selectedId,
-  onHover, onSelectPermit, onLocate, locating, geoError,
+  onHover, onSelectPermit, onDeselectPermit, onLocate, locating, geoError,
 }: PermitMapProps) {
   const skipNextFit = useRef(false)
   const narrow = useIsNarrow()
@@ -91,6 +92,7 @@ export function PermitMap({
             popupTopPadding={popupTopPadding}
             onHover={onHover}
             onSelect={onSelectPermit}
+            onDeselect={onDeselectPermit}
           />
         ))}
       </MapContainer>

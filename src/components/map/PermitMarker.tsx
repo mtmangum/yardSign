@@ -6,7 +6,7 @@ import { formatDate, formatDistance, formatValuation } from '../../lib/format'
 import { KIND_COLOR, permitKind } from '../../lib/permitKind'
 
 export function PermitMarker({
-  permit, active, open, narrow, popupTopPadding, onHover, onSelect,
+  permit, active, open, narrow, popupTopPadding, onHover, onSelect, onDeselect,
 }: {
   permit: Permit
   active: boolean
@@ -16,9 +16,12 @@ export function PermitMarker({
   popupTopPadding: [number, number]
   onHover: (id: string | null) => void
   onSelect: (permit: Permit) => void
+  onDeselect: () => void
 }) {
   const kind = permitKind(permit)
   const markerRef = useRef<LeafletCircleMarker>(null)
+  const openRef = useRef(open)
+  openRef.current = open
   const meta = [formatDate(permit.issue_date), formatValuation(permit.total_job_valuation), permit.status_current]
     .filter(Boolean)
 
@@ -41,6 +44,9 @@ export function PermitMarker({
         mouseover: () => onHover(permit.id),
         mouseout: () => onHover(null),
         click: () => onSelect(permit),
+        // Fires on the × button and on Esc. Ignore the close Leaflet does when
+        // another marker's popup opens (this one is no longer `open` by then).
+        popupclose: () => { if (openRef.current) onDeselect() },
       }}
     >
       <Popup
