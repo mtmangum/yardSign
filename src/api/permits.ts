@@ -27,6 +27,8 @@ export interface PermitQuery {
   days: number
   limit?: number
   kinds?: PermitKind[]
+  /** Zip of the search address, used to count nearby ungeocoded permits. */
+  zip?: string
 }
 
 export interface AddressMatch {
@@ -40,6 +42,8 @@ export interface PermitResult {
   mapPermits: Permit[]
   /** Total in the radius before the marker cap - so the UI can say "500 of N". */
   total: number
+  /** Permits in the search zip the city feed never gave coordinates for. */
+  unmapped: number
 }
 
 export async function fetchPermits(query: PermitQuery, signal?: AbortSignal): Promise<PermitResult> {
@@ -50,6 +54,7 @@ export async function fetchPermits(query: PermitQuery, signal?: AbortSignal): Pr
     days: String(query.days),
   })
   if (query.limit) params.set('limit', String(query.limit))
+  if (query.zip) params.set('zip', query.zip)
   for (const kind of query.kinds ?? []) params.append('kind', kind)
 
   const response = await fetch(`/api/permits?${params}`, { signal })
@@ -57,11 +62,26 @@ export async function fetchPermits(query: PermitQuery, signal?: AbortSignal): Pr
     const body = await response.json().catch(() => ({}))
     throw new Error(body.error ?? `Permit lookup failed (${response.status})`)
   }
-  const payload = (await response.json()) as { permits: Permit[]; mapPermits?: Permit[]; total?: number }
+  const payload = (await response.json()) as {
+    permits: Permit[]; mapPermits?: Permit[]; total?: number; unmapped?: number
+  }
   return {
     permits: payload.permits,
     mapPermits: payload.mapPermits ?? payload.permits,
     total: payload.total ?? payload.permits.length,
+    unmapped: payload.unmapped ?? 0,
+  }
+}
+
+/** When the Austin feed was last imported, for the freshness stamp. */
+export async function fetchLastImportAt(signal?: AbortSignal): Promise<string | null> {
+  try {
+    const response = await fetch('/api/status', { signal })
+    if (!response.ok) return null
+    const payload = (await response.json()) as { lastImportAt?: string | null }
+    return payload.lastImportAt ?? null
+  } catch {
+    return null
   }
 }
 

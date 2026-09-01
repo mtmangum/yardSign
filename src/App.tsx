@@ -7,7 +7,7 @@ import { useGeolocate } from './hooks/useGeolocate'
 import { RADIUS_CHOICES, snapLocation } from './lib/geo'
 import type { PermitKind } from './lib/permitKind'
 import { type LocationSource, parseUrl, toUrl } from './lib/searchParams'
-import { fetchPermit, geocodeAddress, type AddressMatch, type Permit, type PermitQuery } from './api/permits'
+import { fetchLastImportAt, fetchPermit, geocodeAddress, type AddressMatch, type Permit, type PermitQuery } from './api/permits'
 
 const WINDOW_OPTIONS = [
   { label: 'Last 30 days', value: 30 },
@@ -150,12 +150,23 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPop)
   }, [])
 
+  // A trailing zip on the geocoder's address label ("… AUSTIN, TX, 78704") lets
+  // the API count nearby permits the city feed never placed on the map.
+  const zip = locationSource === 'address'
+    ? location?.label.match(/(\d{5})(?:-\d{4})?\s*$/)?.[1]
+    : undefined
+
   // Memoized so usePermits does not refetch on every unrelated render.
   const query = useMemo<PermitQuery | null>(
-    () => (location ? { lat: location.lat, lng: location.lng, radius, days, limit: LIST_LIMIT, kinds: activeKinds } : null),
-    [location, radius, days, activeKinds],
+    () => (location ? { lat: location.lat, lng: location.lng, radius, days, limit: LIST_LIMIT, kinds: activeKinds, zip } : null),
+    [location, radius, days, activeKinds, zip],
   )
-  const { permits, mapPermits, total, loading, error } = usePermits(query)
+  const { permits, mapPermits, total, unmapped, loading, error } = usePermits(query)
+
+  const [lastImportAt, setLastImportAt] = useState<string | null>(null)
+  useEffect(() => {
+    fetchLastImportAt().then(setLastImportAt)
+  }, [])
   const geo = useGeolocate(({ lat, lng }) => {
     setSelectedPermit(null)
     setLocation({ label: 'Current location', lat, lng }, 'geo')
@@ -281,6 +292,8 @@ export default function App() {
             permits={listedPermits}
             mappedCount={mapPermits.length}
             total={total}
+            unmapped={unmapped}
+            lastImportAt={lastImportAt}
             activeKinds={activeKinds}
             onToggleKind={toggleKind}
             loading={loading}

@@ -16,6 +16,11 @@
 - Shareable open card: selecting a permit adds `?p=<permit number>`; opening
   such a link fetches that one permit (new `/api/permit` endpoint), centres on
   it and opens its card. Closing the popup (× or Esc) drops `?p=`.
+- The map no longer lies by omission. ~21% of the Austin feed has no
+  coordinates and can't be plotted; an address search now shows "N more permits
+  in this ZIP aren't on the map" when that's true (counted by zip, since
+  ungeocoded rows can't be radius-filtered). A colophon at the foot of the list
+  shows when the feed was last imported (new `/api/status` endpoint).
 - The Demolition / New / Remodel / Other chips in the result summary are now
   filter toggles (multi-select; a "Clear" appears while any are active). The
   filter runs in SQL — a new `permit_kind_of()` immutable function feeds a

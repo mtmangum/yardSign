@@ -5,11 +5,12 @@ interface PermitsState {
   permits: Permit[]
   mapPermits: Permit[]
   total: number
+  unmapped: number
   loading: boolean
   error: string | null
 }
 
-const EMPTY: PermitsState = { permits: [], mapPermits: [], total: 0, loading: false, error: null }
+const EMPTY: PermitsState = { permits: [], mapPermits: [], total: 0, unmapped: 0, loading: false, error: null }
 
 export function usePermits(query: PermitQuery | null): PermitsState {
   const [state, setState] = useState<PermitsState>(EMPTY)
@@ -27,8 +28,8 @@ export function usePermits(query: PermitQuery | null): PermitsState {
     setState((previous) => ({ ...previous, mapPermits: [], loading: true, error: null }))
 
     fetchPermits(query, controller.signal)
-      .then(({ permits, mapPermits, total }) =>
-        setState({ permits, mapPermits, total, loading: false, error: null }))
+      .then(({ permits, mapPermits, total, unmapped }) =>
+        setState({ permits, mapPermits, total, unmapped, loading: false, error: null }))
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === 'AbortError') return
         setState({ ...EMPTY, error: error instanceof Error ? error.message : 'Something went wrong' })

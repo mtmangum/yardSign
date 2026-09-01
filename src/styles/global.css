@@ -345,6 +345,22 @@ button, input, select { font: inherit; color: inherit; }
 }
 .results__clear:hover { text-decoration: underline; }
 
+.results__unmapped {
+  margin: 10px 0 0;
+  padding-left: 10px;
+  border-left: 2px solid var(--accent);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.results__colophon {
+  margin: 0;
+  padding: 16px 20px 24px;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
 /* One result. Clicking the card shows it on the map; the city record is a
    separate explicit link. */
 .permit-card { display: block; }

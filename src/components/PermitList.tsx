@@ -7,6 +7,8 @@ interface PermitListProps {
   permits: Permit[]
   mappedCount: number
   total: number
+  unmapped: number
+  lastImportAt: string | null
   activeKinds: PermitKind[]
   onToggleKind: (kind: PermitKind) => void
   loading: boolean
@@ -24,6 +26,14 @@ const KIND_CHIP_LABEL: Record<PermitKind, string> = {
 }
 
 const n = (value: number) => value.toLocaleString('en-US')
+
+const relativeDay = (iso: string) => {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)
+  if (days <= 0) return 'today'
+  if (days === 1) return 'yesterday'
+  if (days < 7) return `${days} days ago`
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
 
 const animateScroll = (element: HTMLElement | Window, target: number) => {
   const start = element instanceof Window ? element.scrollY : element.scrollTop
@@ -46,7 +56,7 @@ const animateScroll = (element: HTMLElement | Window, target: number) => {
   return () => window.cancelAnimationFrame(frame)
 }
 
-export function PermitList({ permits, mappedCount, total, activeKinds, onToggleKind, loading, error, hasLocation, activeId, focusId, focusKey, onHover, onSelect }: PermitListProps) {
+export function PermitList({ permits, mappedCount, total, unmapped, lastImportAt, activeKinds, onToggleKind, loading, error, hasLocation, activeId, focusId, focusKey, onHover, onSelect }: PermitListProps) {
   const focusedRow = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -116,6 +126,13 @@ export function PermitList({ permits, mappedCount, total, activeKinds, onToggleK
             </button>
           )}
         </div>
+        {unmapped > 0 && (
+          <p className="results__unmapped">
+            {n(unmapped)} more {unmapped === 1 ? 'permit' : 'permits'} in this ZIP{' '}
+            {unmapped === 1 ? "isn't" : "aren't"} on the map — the city feed gave no
+            coordinates for {unmapped === 1 ? 'it' : 'them'}.
+          </p>
+        )}
       </div>
       {permits.length === 0 ? (
         <p className="results__status">
@@ -160,6 +177,10 @@ export function PermitList({ permits, mappedCount, total, activeKinds, onToggleK
           </div>
         )
       })}
+      <p className="results__colophon">
+        City of Austin issued construction permits
+        {lastImportAt && ` · updated ${relativeDay(lastImportAt)}`}
+      </p>
     </>
   )
 }

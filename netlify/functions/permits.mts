@@ -37,15 +37,19 @@ export default async (request: Request) => {
   const minValuation = params.has('minValuation') ? numberParam(params, 'minValuation', 0) : null
   const workClasses = params.getAll('workClass').filter(Boolean)
   const kinds = params.getAll('kind').filter(Boolean)
+  // A zip from the search address lets us count nearby permits the Census
+  // geocoder never placed (~21% of the feed), so the map isn't silently lying.
+  const zip = params.get('zip')?.match(/^\d{5}$/)?.[0] ?? null
 
   const since = new Date()
   since.setDate(since.getDate() - days)
+  const sinceDate = since.toISOString().slice(0, 10)
 
   const rpcArgs = {
     p_lat: lat,
     p_lng: lng,
     p_radius_m: radius,
-    p_since: since.toISOString().slice(0, 10),
+    p_since: sinceDate,
     p_work_classes: workClasses.length ? workClasses : null,
     p_min_valuation: minValuation,
     p_kinds: kinds.length ? kinds : null,
@@ -60,7 +64,18 @@ export default async (request: Request) => {
       return null
     })
 
-    const [rowsResponse, mapResponse, countResponse] = await Promise.all([
+    // Ungeocoded permits have no coordinates, so they can't be radius-filtered.
+    // Approximate "near here" with the search address's zip.
+    const unmappedRequest = zip
+      ? supabaseRequest(
+        `permits?select=id&geocode_status=eq.no_match&zip_code=eq.${zip}&issue_date=gte.${sinceDate}`,
+        { headers: { Prefer: 'count=exact', Range: '0-0' } },
+      )
+        .then((response) => Number(response.headers.get('content-range')?.split('/')[1] ?? 0))
+        .catch(() => 0)
+      : Promise.resolve(0)
+
+    const [rowsResponse, mapResponse, countResponse, unmapped] = await Promise.all([
       supabaseRequest('rpc/permits_near', {
         method: 'POST',
         body: JSON.stringify({ ...rpcArgs, p_limit: limit }),
@@ -70,11 +85,12 @@ export default async (request: Request) => {
         method: 'POST',
         body: JSON.stringify(rpcArgs),
       }),
+      unmappedRequest,
     ])
     const permits = await rowsResponse.json()
     const mapPermits = mapResponse ? await mapResponse.json() : permits
     const total = await countResponse.json()
-    return new Response(JSON.stringify({ permits, mapPermits, total, center: { lat, lng }, radius, days }), {
+    return new Response(JSON.stringify({ permits, mapPermits, total, unmapped, center: { lat, lng }, radius, days }), {
       headers: {
         'Content-Type': 'application/json',
         // Permit data only changes once a day (the 07:00 UTC import). Let the

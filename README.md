@@ -72,6 +72,7 @@ supabase db push
 | `geocode-census-background` | manual, `GET /api/geocode-census` | One-at-a-time geocode for the small daily incremental |
 | `permits` | `GET /api/permits` | Closest-first list, grid-distributed map sample, and uncapped total via Supabase SQL functions |
 | `permit` | `GET /api/permit?number=…` | One permit by its city number, for opening a shared `?p=` card |
+| `status` | `GET /api/status` | When the feed was last imported, for the freshness colophon |
 | `geocode-address` | `GET /api/geocode-address` | Address autocomplete for the search box |
 
 The initial backfill is done (66,734 of 84,521 matched, 2026-08-30). To
