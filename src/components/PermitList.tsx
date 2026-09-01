@@ -41,7 +41,7 @@ const animateScroll = (element: HTMLElement | Window, target: number) => {
 }
 
 export function PermitList({ permits, mappedCount, total, loading, error, hasLocation, activeId, focusId, focusKey, onHover, onSelect }: PermitListProps) {
-  const focusedRow = useRef<HTMLButtonElement | null>(null)
+  const focusedRow = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (!focusId || !focusedRow.current) return
@@ -101,30 +101,37 @@ export function PermitList({ permits, mappedCount, total, loading, error, hasLoc
         const valuation = formatValuation(permit.total_job_valuation)
         const issued = formatDate(permit.issue_date)
         return (
-          <button
-            type="button"
-            ref={focusId === permit.id ? focusedRow : undefined}
+          <div
             key={permit.id}
-            className="permit"
+            ref={focusId === permit.id ? focusedRow : undefined}
+            className="permit-card"
             data-kind={permitKind(permit)}
             data-active={activeId === permit.id}
             onMouseEnter={() => onHover(permit.id)}
             onMouseLeave={() => onHover(null)}
-            onClick={() => onSelect(permit)}
           >
-            <div className="permit__head">
-              <span className="permit__address">{permit.address ?? 'Address not recorded'}</span>
-              <span className="permit__distance">
-                {formatDistance(permit.distance_m)}
-                {permit.source_url && <span className="permit__external" aria-hidden="true"> ↗</span>}
-              </span>
-            </div>
-            <span className="permit__work">{permit.work_class ?? permit.permit_type_desc ?? 'Permit'}</span>
-            {permit.description && <p className="permit__description">{permit.description}</p>}
-            <div className="permit__meta">
-              {[issued, valuation, permit.status_current].filter(Boolean).join(' · ')}
-            </div>
-          </button>
+            <button type="button" className="permit" onClick={() => onSelect(permit)}>
+              <div className="permit__head">
+                <span className="permit__address">{permit.address ?? 'Address not recorded'}</span>
+                <span className="permit__distance">{formatDistance(permit.distance_m)}</span>
+              </div>
+              <span className="permit__work">{permit.work_class ?? permit.permit_type_desc ?? 'Permit'}</span>
+              {permit.description && <p className="permit__description">{permit.description}</p>}
+              <div className="permit__meta">
+                {[issued, valuation, permit.status_current].filter(Boolean).join(' · ')}
+              </div>
+            </button>
+            {permit.source_url && (
+              <a
+                className="permit__link"
+                href={permit.source_url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                City permit record <span aria-hidden="true">↗</span>
+              </a>
+            )}
+          </div>
         )
       })}
     </>

@@ -1,24 +1,34 @@
+import { useEffect, useRef } from 'react'
+import type { CircleMarker as LeafletCircleMarker } from 'leaflet'
 import { CircleMarker, Popup } from 'react-leaflet'
 import type { Permit } from '../../api/permits'
 import { formatDate, formatDistance, formatValuation } from '../../lib/format'
 import { KIND_COLOR, permitKind } from '../../lib/permitKind'
 
 export function PermitMarker({
-  permit, active, narrow, popupTopPadding, onHover, onSelect,
+  permit, active, open, narrow, popupTopPadding, onHover, onSelect,
 }: {
   permit: Permit
   active: boolean
+  /** Selected from the sidebar - open this marker's popup. */
+  open: boolean
   narrow: boolean
   popupTopPadding: [number, number]
   onHover: (id: string | null) => void
   onSelect: (permit: Permit) => void
 }) {
   const kind = permitKind(permit)
+  const markerRef = useRef<LeafletCircleMarker>(null)
   const meta = [formatDate(permit.issue_date), formatValuation(permit.total_job_valuation), permit.status_current]
     .filter(Boolean)
 
+  useEffect(() => {
+    if (open) markerRef.current?.openPopup()
+  }, [open])
+
   return (
     <CircleMarker
+      ref={markerRef}
       center={[permit.latitude, permit.longitude]}
       radius={active ? 9 : kind === 'demolition' ? 7 : 5}
       pathOptions={{

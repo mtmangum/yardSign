@@ -28,6 +28,8 @@ interface PermitMapProps {
   loading: boolean
   active: boolean
   activeId: string | null
+  /** Permit selected from the sidebar - its marker popup opens. */
+  selectedId: string | null
   onHover: (id: string | null) => void
   onSelectPermit: (permit: Permit) => void
   onLocate: () => void
@@ -36,7 +38,7 @@ interface PermitMapProps {
 }
 
 export function PermitMap({
-  center, radius, onRadiusChange, onCenterChange, permits, loading, active, activeId,
+  center, radius, onRadiusChange, onCenterChange, permits, loading, active, activeId, selectedId,
   onHover, onSelectPermit, onLocate, locating, geoError,
 }: PermitMapProps) {
   const skipNextFit = useRef(false)
@@ -84,6 +86,7 @@ export function PermitMap({
             key={permit.id}
             permit={permit}
             active={activeId === permit.id}
+            open={selectedId === permit.id}
             narrow={narrow}
             popupTopPadding={popupTopPadding}
             onHover={onHover}

@@ -20,6 +20,9 @@ window. The sidebar lists the 500 closest permits; the map plots up to 1,000
 permits sampled across the full search area so dense blocks do not hide activity
 near the perimeter.
 
+Clicking a listing opens that permit's card on the map rather than navigating
+away; each listing has a separate link to the City of Austin permit record.
+
 On desktop, drag the handle on the circle edge to resize the search area. Hold
 Command (macOS) or Control (Windows/Linux) to preview a ghost circle, then click
 the map to move the search center without panning the basemap.

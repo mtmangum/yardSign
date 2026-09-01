@@ -2,6 +2,22 @@
 
 ## 2026-08-31
 
+### Improved
+
+- Clicking a listing in the sidebar now opens that permit's card on the map —
+  highlighting it, adding a marker if it fell outside the grid sample, and
+  switching to the map view on mobile — instead of navigating away to the city
+  portal. Each listing carries an explicit "City permit record" link for that.
+
+### Design
+
+- Warmer, less generic identity: manila paper and warm ink instead of dashboard
+  grey; one ochre accent for interaction (the active radius / issued segment, a
+  rule under the masthead, hovers, focus); red kept strictly for demolition.
+- Sidebar labels in sentence case, no tracked caps. The result count demoted
+  from a headline stat to a plain line. No IBM Plex Mono in the sidebar —
+  distances, dates, metadata and counts all set in the text face.
+
 ### Internal
 
 - Refactor: `PermitMap.tsx` (429 lines) split into `src/components/map/`

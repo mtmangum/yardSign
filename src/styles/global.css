@@ -1,30 +1,33 @@
 /* Yard Sign
-   The visual reference is the physical object: a corrugated plastic notice
-   staked in a lawn. Flat and architectural — hard 2px rules do the organising,
-   nothing floats, and red is a signal (a structure coming down) rather than
-   decoration. Archivo throughout, every figure in mono so columns of numbers
-   line up down the list. See docs/restyle.md. */
+   A considered civic tool, not a themed one. Warm paper stock and ink rather
+   than dashboard grey; one earthy accent (ochre) for interaction; red reserved
+   for demolition — the one thing a real posted notice would shout. Sentence
+   case, one type family, no mono-for-numbers. The physical yard sign informs
+   the content hierarchy (address, action, contact), not a costume. */
 
 :root {
   color-scheme: light dark;
 
-  --paper: #f3f2f2;
-  --paper-raised: #ffffff;
-  --ink: #201e1d;
-  --ink-soft: #7a7570;
-  --rule: #ddd9d4;
-  --rule-strong: #201e1d;
+  --paper: #f1e9d6;
+  --paper-raised: #faf5e8;
+  --ink: #23201b;
+  --ink-soft: #6f675a;
+  --rule: #e3ddcd;
+  --rule-strong: #23201b;
 
-  --notice: #ec3013;
-  --notice-soft: #fbeee9;
-  --tag: #e8e5e1;
+  /* Interaction accent: a municipal ochre, dark enough for text and borders and
+     unmistakably not the demolition red. */
+  --accent: #a9691a;
+  --notice: var(--accent);
+  --notice-soft: #f3e7cf;
+  --tag: #e9e1cd;
 
-  /* One accent over an ink-to-pale ramp: demolition is the only saturated
-     colour in the app, so it reads first. */
-  --demolition: #ec3013;
-  --new-build: #201e1d;
-  --remodel: #8c877f;
-  --other: #c9c5c0;
+  /* One saturated colour in the app: demolition. Everything else is an
+     ink-to-pale warm ramp so the teardown reads first. */
+  --demolition: #d93a12;
+  --new-build: #23201b;
+  --remodel: #8b8270;
+  --other: #cbc2ab;
 
   --radius: 0;
 
@@ -34,22 +37,22 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #131316;
-    --paper-raised: #1c1c20;
-    --ink: #f2f1ec;
-    --ink-soft: #9a958d;
-    --rule: #2e2b28;
-    --rule-strong: #f2f1ec;
+    --paper: #16140f;
+    --paper-raised: #1f1c15;
+    --ink: #f2ecdd;
+    --ink-soft: #a1977f;
+    --rule: #332e22;
+    --rule-strong: #f2ecdd;
 
-    --notice: #ff4a2e;
-    --notice-soft: #2a1410;
-    --tag: #35322e;
+    --accent: #d99a3a;
+    --notice-soft: #2a2010;
+    --tag: #332e22;
 
     /* Ramp reversed so ordering by weight survives the flip. */
-    --demolition: #ff4a2e;
-    --new-build: #f2f1ec;
-    --remodel: #9a958d;
-    --other: #4a4741;
+    --demolition: #ff5a34;
+    --new-build: #f2ecdd;
+    --remodel: #a1977f;
+    --other: #4c4636;
   }
 }
 
@@ -100,8 +103,8 @@ button, input, select { font: inherit; color: inherit; }
     width: 168px;
     padding: 4px;
     transform: translateX(-50%);
-    background: #ffffff;
-    border: 2px solid #201e1d;
+    background: var(--paper-raised);
+    border: 2px solid var(--rule-strong);
   }
 
   .mobile-view-switcher button {
@@ -109,17 +112,15 @@ button, input, select { font: inherit; color: inherit; }
     padding: 10px 14px;
     background: transparent;
     border: 0;
-    color: #6b6660;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    color: var(--ink-soft);
+    font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
   }
 
   .mobile-view-switcher button[aria-pressed="true"] {
-    background: #201e1d;
-    color: #ffffff;
+    background: var(--ink);
+    color: var(--paper-raised);
   }
 }
 
@@ -135,6 +136,7 @@ button, input, select { font: inherit; color: inherit; }
 
 .masthead {
   padding: 20px 20px 16px;
+  border-bottom: 3px solid var(--accent);
 }
 
 .masthead__mark {
@@ -205,18 +207,16 @@ button, input, select { font: inherit; color: inherit; }
 }
 
 .field__label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
 }
 
 .field__input {
   width: 100%;
   padding: 9px 11px;
-  background: var(--paper);
-  border: 1px solid var(--rule-strong);
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
   outline: none;
 }
@@ -224,7 +224,7 @@ button, input, select { font: inherit; color: inherit; }
 .segmented {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  border: 1px solid var(--rule-strong);
+  border: 1px solid var(--rule);
 }
 
 .segmented__option {
@@ -232,23 +232,23 @@ button, input, select { font: inherit; color: inherit; }
   padding: 8px 4px;
   border: 0;
   border-right: 1px solid var(--rule);
-  background: var(--paper);
+  background: var(--paper-raised);
   color: var(--ink-soft);
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
 }
 
 .segmented__option:last-child { border-right: 0; }
 .segmented__option:hover { background: var(--notice-soft); color: var(--ink); }
-.segmented__option[aria-checked="true"] { background: var(--ink); color: var(--paper-raised); }
+.segmented__option[aria-checked="true"] { background: var(--accent); color: #fff; }
 
 .suggestions {
   list-style: none;
   margin: 4px 0 0;
   padding: 0;
-  border: 1px solid var(--rule-strong);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
   overflow: hidden;
   background: var(--paper-raised);
@@ -297,68 +297,72 @@ button, input, select { font: inherit; color: inherit; }
 .results__count {
   display: flex;
   align-items: baseline;
-  gap: 7px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink);
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink-soft);
 }
 
-.results__count strong { font-size: 25px; line-height: 1; letter-spacing: -0.06em; }
-.results__count small { margin-left: auto; color: var(--ink-soft); font-size: 9px; }
+.results__count strong { color: var(--ink); font-size: 15px; font-weight: 700; }
+.results__count small { margin-left: auto; color: var(--ink-soft); font-size: 11px; }
 
-.results__kinds { display: flex; gap: 12px; margin-top: 11px; overflow: hidden; }
-.kind-count { display: inline-flex; align-items: center; gap: 5px; min-width: 0; font-size: 10px; color: var(--ink-soft); }
+.results__kinds { display: flex; gap: 12px; margin-top: 10px; overflow: hidden; }
+.kind-count { display: inline-flex; align-items: center; gap: 5px; min-width: 0; font-size: 11px; color: var(--ink-soft); }
 .kind-count i { width: 7px; height: 7px; flex: none; background: var(--other); }
-.kind-count strong { font-family: var(--font-mono); color: var(--ink); font-size: 10px; }
+.kind-count strong { color: var(--ink); font-size: 11px; font-weight: 600; }
 .kind-count[data-kind="demolition"] i { background: var(--demolition); }
 .kind-count[data-kind="new"] i { background: var(--new-build); }
 .kind-count[data-kind="remodel"] i { background: var(--remodel); }
+
+/* One result. Clicking the card shows it on the map; the city record is a
+   separate explicit link. */
+.permit-card { display: block; }
+.permit-card:hover,
+.permit-card[data-active="true"] { background: var(--notice-soft); }
 
 .permit {
   display: block;
   width: 100%;
   text-align: left;
-  padding: 14px 20px;
+  padding: 14px 20px 10px;
   background: none;
   border: 0;
   cursor: pointer;
 }
-
-.permit:hover { background: var(--notice-soft); }
-.permit[data-active="true"] { background: var(--notice-soft); }
 
 .permit__head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
 
 .permit__address { font-weight: 600; font-size: 14px; letter-spacing: -0.01em; }
 
 .permit__distance {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ink-soft);
-  font-family: var(--font-mono);
   white-space: nowrap;
 }
 
-.permit__external { color: var(--ink); font-size: 13px; }
+.permit__link {
+  display: inline-block;
+  margin: 0 20px 14px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  text-decoration: none;
+}
 
-/* A filled tag rather than accent-coloured text, so a row of remodels does not
-   tint the whole panel red. White on accent for demolition only. */
+.permit__link:hover { color: var(--notice); text-decoration: underline; }
+
+/* A quiet category tag, so a run of remodels does not tint the panel. Filled
+   red for demolition only. */
 .permit__work {
   display: inline-block;
   margin-top: 8px;
-  padding: 2px 6px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-weight: 600;
   background: var(--tag);
-  color: var(--ink);
+  color: var(--ink-soft);
 }
 
-.permit[data-kind="demolition"] .permit__work {
-  background: var(--notice);
+.permit-card[data-kind="demolition"] .permit__work {
+  background: var(--demolition);
   color: #fff;
 }
 
@@ -375,9 +379,8 @@ button, input, select { font: inherit; color: inherit; }
 
 .permit__meta {
   margin-top: 8px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ink-soft);
-  font-family: var(--font-mono);
 }
 
 /* Map ------------------------------------------------------------------ */
@@ -565,7 +568,8 @@ button, input, select { font: inherit; color: inherit; }
   .controls { padding: 14px 16px; gap: 12px; }
   .results__summary { padding-inline: 16px; }
   .permit { padding-right: 16px; }
-  .permit { scroll-margin-top: 64px; }
+  .permit__link { margin-inline: 16px; }
+  .permit-card { scroll-margin-top: 64px; }
   .app__map .leaflet-bar a {
     width: 44px;
     height: 44px;

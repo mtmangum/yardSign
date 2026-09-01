@@ -47,8 +47,18 @@ export default function App() {
     return [selectedPermit, ...closest.slice(0, LIST_LIMIT - 1)]
   }, [permits, selectedPermit])
 
-  const openPermit = (permit: Permit) => {
-    if (permit.source_url) window.open(permit.source_url, '_blank', 'noreferrer')
+  // The map draws the grid sample; make sure a permit picked from the sidebar
+  // has a marker (and therefore a popup) even if it fell outside that sample.
+  const mappedPermits = useMemo(() => {
+    if (!selectedPermit || mapPermits.some((permit) => permit.id === selectedPermit.id)) return mapPermits
+    return [selectedPermit, ...mapPermits]
+  }, [mapPermits, selectedPermit])
+
+  // Selecting a permit (from either the list or a marker) shows its card on the
+  // map; on mobile that means switching to the map view.
+  const selectPermit = (permit: Permit) => {
+    setSelectedPermit(permit)
+    setMobileView('map')
   }
 
   return (
@@ -150,7 +160,7 @@ export default function App() {
             focusId={selectedPermit?.id ?? null}
             focusKey={mobileView}
             onHover={setHoveredId}
-            onSelect={openPermit}
+            onSelect={selectPermit}
           />
         </div>
       </aside>
@@ -166,14 +176,13 @@ export default function App() {
           setSelectedPermit(null)
           setLocation({ label: 'Dropped pin', lat, lng })
         }}
-        permits={mapPermits}
+        permits={mappedPermits}
         loading={loading}
         active={mobileView === 'map'}
         activeId={activeId}
+        selectedId={selectedPermit?.id ?? null}
         onHover={setHoveredId}
-        onSelectPermit={(permit) => {
-          setSelectedPermit(permit)
-        }}
+        onSelectPermit={selectPermit}
         onLocate={geo.locate}
         locating={geo.locating}
         geoError={geo.error}
