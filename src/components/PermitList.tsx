@@ -7,6 +7,8 @@ interface PermitListProps {
   permits: Permit[]
   mappedCount: number
   total: number
+  activeKinds: PermitKind[]
+  onToggleKind: (kind: PermitKind) => void
   loading: boolean
   error: string | null
   hasLocation: boolean
@@ -15,6 +17,10 @@ interface PermitListProps {
   focusKey: string
   onHover: (id: string | null) => void
   onSelect: (permit: Permit) => void
+}
+
+const KIND_CHIP_LABEL: Record<PermitKind, string> = {
+  demolition: 'Demolition', new: 'New', remodel: 'Remodel', other: 'Other',
 }
 
 const n = (value: number) => value.toLocaleString('en-US')
@@ -40,7 +46,7 @@ const animateScroll = (element: HTMLElement | Window, target: number) => {
   return () => window.cancelAnimationFrame(frame)
 }
 
-export function PermitList({ permits, mappedCount, total, loading, error, hasLocation, activeId, focusId, focusKey, onHover, onSelect }: PermitListProps) {
+export function PermitList({ permits, mappedCount, total, activeKinds, onToggleKind, loading, error, hasLocation, activeId, focusId, focusKey, onHover, onSelect }: PermitListProps) {
   const focusedRow = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -65,10 +71,8 @@ export function PermitList({ permits, mappedCount, total, loading, error, hasLoc
   }
   if (loading) return <p className="results__status">Checking the permit feed…</p>
   if (error) return <p className="results__status">{error}</p>
-  if (permits.length === 0) {
-    return <p className="results__status">No permits issued in this radius and time window. Try a wider radius.</p>
-  }
 
+  const filtering = activeKinds.length > 0
   const kindCounts = permits.reduce<Record<PermitKind, number>>(
     (counts, permit) => {
       counts[permitKind(permit)] += 1
@@ -87,17 +91,39 @@ export function PermitList({ permits, mappedCount, total, loading, error, hasLoc
             <small>{n(mappedCount)} mapped · {n(permits.length)} closest listed</small>
           )}
         </div>
-        <div className="results__kinds" aria-label="Permit types in the visible results">
+        <div className="results__kinds" aria-label="Filter by permit type">
           {KIND_ORDER.map((kind) => (
-            <span className="kind-count" data-kind={kind} key={kind}>
+            <button
+              type="button"
+              className="kind-count"
+              data-kind={kind}
+              aria-pressed={activeKinds.includes(kind)}
+              key={kind}
+              onClick={() => onToggleKind(kind)}
+            >
               <i aria-hidden="true" />
-              <span>{kind === 'new' ? 'New' : kind[0].toUpperCase() + kind.slice(1)}</span>
-              <strong>{n(kindCounts[kind])}</strong>
-            </span>
+              <span>{KIND_CHIP_LABEL[kind]}</span>
+              {!filtering && <strong>{n(kindCounts[kind])}</strong>}
+            </button>
           ))}
+          {filtering && (
+            <button
+              type="button"
+              className="results__clear"
+              onClick={() => activeKinds.forEach(onToggleKind)}
+            >
+              Clear
+            </button>
+          )}
         </div>
       </div>
-      {permits.map((permit) => {
+      {permits.length === 0 ? (
+        <p className="results__status">
+          {filtering
+            ? 'No permits of the selected type in this area and time window.'
+            : 'No permits issued in this radius and time window. Try a wider radius.'}
+        </p>
+      ) : permits.map((permit) => {
         const valuation = formatValuation(permit.total_job_valuation)
         const issued = formatDate(permit.issue_date)
         return (

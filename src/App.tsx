@@ -5,6 +5,7 @@ import { PermitMap } from './components/map/PermitMap'
 import { usePermits } from './hooks/usePermits'
 import { useGeolocate } from './hooks/useGeolocate'
 import { DEFAULT_RADIUS, RADIUS_CHOICES, snapLocation } from './lib/geo'
+import type { PermitKind } from './lib/permitKind'
 import type { AddressMatch, Permit, PermitQuery } from './api/permits'
 
 const WINDOW_OPTIONS = [
@@ -28,11 +29,12 @@ export default function App() {
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [selectedPermit, setSelectedPermit] = useState<Permit | null>(null)
   const [mobileView, setMobileView] = useState<'map' | 'list'>('map')
+  const [activeKinds, setActiveKinds] = useState<PermitKind[]>([])
 
   // Memoized so usePermits does not refetch on every unrelated render.
   const query = useMemo<PermitQuery | null>(
-    () => (location ? { lat: location.lat, lng: location.lng, radius, days, limit: LIST_LIMIT } : null),
-    [location, radius, days],
+    () => (location ? { lat: location.lat, lng: location.lng, radius, days, limit: LIST_LIMIT, kinds: activeKinds } : null),
+    [location, radius, days, activeKinds],
   )
   const { permits, mapPermits, total, loading, error } = usePermits(query)
   const geo = useGeolocate(({ lat, lng }) => {
@@ -59,6 +61,12 @@ export default function App() {
   const selectPermit = (permit: Permit) => {
     setSelectedPermit(permit)
     setMobileView('map')
+  }
+
+  const toggleKind = (kind: PermitKind) => {
+    setSelectedPermit(null)
+    setActiveKinds((current) =>
+      current.includes(kind) ? current.filter((k) => k !== kind) : [...current, kind])
   }
 
   return (
@@ -153,6 +161,8 @@ export default function App() {
             permits={listedPermits}
             mappedCount={mapPermits.length}
             total={total}
+            activeKinds={activeKinds}
+            onToggleKind={toggleKind}
             loading={loading}
             error={error}
             hasLocation={Boolean(location)}

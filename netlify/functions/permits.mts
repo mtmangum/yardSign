@@ -36,6 +36,7 @@ export default async (request: Request) => {
   const limit = clamp(numberParam(params, 'limit', 500), 1, 2000)
   const minValuation = params.has('minValuation') ? numberParam(params, 'minValuation', 0) : null
   const workClasses = params.getAll('workClass').filter(Boolean)
+  const kinds = params.getAll('kind').filter(Boolean)
 
   const since = new Date()
   since.setDate(since.getDate() - days)
@@ -47,6 +48,7 @@ export default async (request: Request) => {
     p_since: since.toISOString().slice(0, 10),
     p_work_classes: workClasses.length ? workClasses : null,
     p_min_valuation: minValuation,
+    p_kinds: kinds.length ? kinds : null,
   }
 
   try {

@@ -305,13 +305,45 @@ button, input, select { font: inherit; color: inherit; }
 .results__count strong { color: var(--ink); font-size: 15px; font-weight: 700; }
 .results__count small { margin-left: auto; color: var(--ink-soft); font-size: 11px; }
 
-.results__kinds { display: flex; gap: 12px; margin-top: 10px; overflow: hidden; }
-.kind-count { display: inline-flex; align-items: center; gap: 5px; min-width: 0; font-size: 11px; color: var(--ink-soft); }
+.results__kinds { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 10px; }
+
+/* Each kind chip is a filter toggle. */
+.kind-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 7px 3px 5px;
+  border: 1px solid transparent;
+  background: none;
+  font: inherit;
+  font-size: 11px;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.kind-count:hover { color: var(--ink); }
+.kind-count[aria-pressed="true"] {
+  border-color: var(--rule-strong);
+  background: var(--notice-soft);
+  color: var(--ink);
+}
+
 .kind-count i { width: 7px; height: 7px; flex: none; background: var(--other); }
 .kind-count strong { color: var(--ink); font-size: 11px; font-weight: 600; }
 .kind-count[data-kind="demolition"] i { background: var(--demolition); }
 .kind-count[data-kind="new"] i { background: var(--new-build); }
 .kind-count[data-kind="remodel"] i { background: var(--remodel); }
+
+.results__clear {
+  padding: 3px 4px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 11px;
+  color: var(--notice);
+  cursor: pointer;
+}
+.results__clear:hover { text-decoration: underline; }
 
 /* One result. Clicking the card shows it on the map; the city record is a
    separate explicit link. */
@@ -613,8 +645,7 @@ button, input, select { font: inherit; color: inherit; }
 @media (max-width: 420px) {
   .masthead__tagline { display: none; }
   .segmented__option { font-size: 10px; }
-  .results__kinds { gap: 8px; }
-  .kind-count span { display: none; }
+  .results__kinds { gap: 6px 8px; }
   .app__map .leaflet-popup-content,
   .app__map .leaflet-popup-content-wrapper {
     width: calc(100vw - 32px) !important;

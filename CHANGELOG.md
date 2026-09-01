@@ -2,6 +2,17 @@
 
 ## 2026-08-31
 
+### Added
+
+- The Demolition / New / Remodel / Other chips in the result summary are now
+  filter toggles (multi-select; a "Clear" appears while any are active). The
+  filter runs in SQL — a new `permit_kind_of()` immutable function feeds a
+  stored `kind` generated column on `permits`, and `permits_near`,
+  `permits_near_map` and `permits_near_count` take a `p_kinds` array (migration
+  `202608300007`). Filtering server-side means the map re-samples with the
+  filter applied rather than showing whatever few of the kind landed in the
+  grid sample. `permit_kind_of()` mirrors `src/lib/permitKind.ts`.
+
 ### Improved
 
 - Clicking a listing in the sidebar now opens that permit's card on the map —

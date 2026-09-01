@@ -18,13 +18,15 @@ export interface Permit {
   distance_m: number
 }
 
+import type { PermitKind } from '../lib/permitKind'
+
 export interface PermitQuery {
   lat: number
   lng: number
   radius: number
   days: number
   limit?: number
-  workClasses?: string[]
+  kinds?: PermitKind[]
 }
 
 export interface AddressMatch {
@@ -48,7 +50,7 @@ export async function fetchPermits(query: PermitQuery, signal?: AbortSignal): Pr
     days: String(query.days),
   })
   if (query.limit) params.set('limit', String(query.limit))
-  for (const workClass of query.workClasses ?? []) params.append('workClass', workClass)
+  for (const kind of query.kinds ?? []) params.append('kind', kind)
 
   const response = await fetch(`/api/permits?${params}`, { signal })
   if (!response.ok) {
