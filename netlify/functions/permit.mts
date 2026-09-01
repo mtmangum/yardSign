@@ -7,8 +7,8 @@ import { supabaseRequest } from './_shared/supabase.mts'
 const FIELDS = [
   'id', 'permit_number', 'permit_type_desc', 'permit_class', 'permit_class_mapped',
   'work_class', 'description', 'address', 'issue_date', 'applied_date',
-  'status_current', 'total_job_valuation', 'housing_units', 'latitude', 'longitude',
-  'source_url',
+  'status_current', 'total_job_valuation', 'total_new_add_sqft', 'housing_units',
+  'number_of_floors', 'latitude', 'longitude', 'source_url',
 ].join(',')
 
 const toRadians = (degrees: number) => (degrees * Math.PI) / 180

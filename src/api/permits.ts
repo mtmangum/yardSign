@@ -11,7 +11,9 @@ export interface Permit {
   applied_date: string | null
   status_current: string | null
   total_job_valuation: number | null
+  total_new_add_sqft: number | null
   housing_units: number | null
+  number_of_floors: number | null
   latitude: number
   longitude: number
   source_url: string | null

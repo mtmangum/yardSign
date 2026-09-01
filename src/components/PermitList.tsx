@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { Permit } from '../api/permits'
-import { formatDate, formatDistance, formatValuation } from '../lib/format'
+import { formatDate, formatDistance, formatValuation, permitFacts } from '../lib/format'
 import { KIND_ORDER, permitKind, type PermitKind } from '../lib/permitKind'
 
 interface PermitListProps {
@@ -143,6 +143,7 @@ export function PermitList({ permits, mappedCount, total, unmapped, lastImportAt
       ) : permits.map((permit) => {
         const valuation = formatValuation(permit.total_job_valuation)
         const issued = formatDate(permit.issue_date)
+        const facts = permitFacts(permit)
         return (
           <div
             key={permit.id}
@@ -160,6 +161,7 @@ export function PermitList({ permits, mappedCount, total, unmapped, lastImportAt
               </div>
               <span className="permit__work">{permit.work_class ?? permit.permit_type_desc ?? 'Permit'}</span>
               {permit.description && <p className="permit__description">{permit.description}</p>}
+              {facts.length > 0 && <div className="permit__facts">{facts.join(' · ')}</div>}
               <div className="permit__meta">
                 {[issued, valuation, permit.status_current].filter(Boolean).join(' · ')}
               </div>

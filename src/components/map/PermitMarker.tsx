@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import type { CircleMarker as LeafletCircleMarker } from 'leaflet'
 import { CircleMarker, Popup } from 'react-leaflet'
 import type { Permit } from '../../api/permits'
-import { formatDate, formatDistance, formatValuation } from '../../lib/format'
+import { formatDate, formatDistance, formatValuation, permitClassLabel, permitFacts } from '../../lib/format'
 import { KIND_COLOR, permitKind } from '../../lib/permitKind'
 
 export function PermitMarker({
@@ -22,8 +22,17 @@ export function PermitMarker({
   const markerRef = useRef<LeafletCircleMarker>(null)
   const openRef = useRef(open)
   openRef.current = open
-  const meta = [formatDate(permit.issue_date), formatValuation(permit.total_job_valuation), permit.status_current]
-    .filter(Boolean)
+  const applied = formatDate(permit.applied_date)
+  const issued = formatDate(permit.issue_date)
+  const meta = [
+    applied && `Applied ${applied}`,
+    issued && `Issued ${issued}`,
+    formatValuation(permit.total_job_valuation),
+    permit.status_current,
+  ].filter(Boolean)
+  const eyebrow = permit.work_class ?? permit.permit_type_desc ?? 'Permit'
+  const classLabel = permitClassLabel(permit.permit_class)
+  const facts = permitFacts(permit)
 
   useEffect(() => {
     if (open) markerRef.current?.openPopup()
@@ -59,13 +68,15 @@ export function PermitMarker({
       >
         <div className="map__popup" data-kind={kind}>
           <div className="map__popup-eyebrow">
-            <span className="map__popup-kind">
-              {permit.work_class ?? permit.permit_type_desc ?? 'Permit'}
-            </span>
+            <span className="map__popup-kind">{eyebrow}</span>
             <span className="map__popup-distance">{formatDistance(permit.distance_m, true)}</span>
           </div>
           <h3>{permit.address ?? 'Address not recorded'}</h3>
+          {classLabel && classLabel.toLowerCase() !== eyebrow.toLowerCase() && (
+            <p className="map__popup-class">{classLabel}</p>
+          )}
           {permit.description && <p className="map__popup-description">{permit.description}</p>}
+          {facts.length > 0 && <div className="map__popup-facts">{facts.join(' · ')}</div>}
           <div className="map__popup-meta">
             {meta.map((item) => <span key={item}>{item}</span>)}
           </div>

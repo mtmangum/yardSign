@@ -22,6 +22,9 @@ near the perimeter.
 
 Clicking a listing opens that permit's card on the map rather than navigating
 away; each listing has a separate link to the City of Austin permit record.
+Listings and cards show a scale line — units / new square footage / floors —
+for new builds and additions, so a duplex reads differently from a 40-unit
+building at a glance.
 
 The search lives in the URL — an address search becomes a path slug like
 `/1412-northridge-dr-austin-tx-78723` (canonicalised on load), the locate button

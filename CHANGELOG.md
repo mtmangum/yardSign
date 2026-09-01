@@ -4,6 +4,16 @@
 
 ### Added
 
+- Permit scale at a glance. The sidebar card and map popup now show a facts line
+  — "232 units · 129,307 sq ft · 6 floors" — so you can tell a duplex from a
+  40-unit building without leaving the page. Shown only for new builds and
+  remodels that add floor area; on a pure interior remodel the unit and floor
+  counts describe the existing building, not the work, so they're withheld.
+  Counts of 1 are dropped — the city stamps them as placeholders on plenty of
+  non-residential permits. The popup also carries the applied date ("Applied …
+  · Issued …") and the permit-class label with its code prefix stripped.
+  `permits_near` and `permits_near_map` now return `total_new_add_sqft` and
+  `number_of_floors` (migration `202608300008`); `/api/permit` selects them too.
 - Searches are now in the URL and shareable. An address search becomes a path
   slug — `/1412-northridge-dr-austin-tx-78723` — of the geocoder's normalised
   address; a hand-typed or partial slug rewrites to the canonical one on load,
