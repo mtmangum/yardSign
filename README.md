@@ -2,7 +2,7 @@
 
 What is being built near you in Austin, from the city's own permit data.
 
-The name is the point: today the only way to learn that the lot behind you is
+The name is the point: https://yardsign.city today the only way to learn that the lot behind you is
 being scraped is a paper notice stapled to a post in the grass. Yard Sign is
 that notice, for every property within a radius you choose.
 
