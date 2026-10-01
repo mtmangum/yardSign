@@ -7,7 +7,9 @@
 
 # Scanner probe paths. This is not a WordPress site; 404 them so they stop
 # counting as pageviews. Must stay above the SPA catch-all: Netlify applies
-# the first matching rule.
+# the first matching rule. See docs/netlify-bot-probe-hardening.md.
+
+# WordPress / PHP probes
 [[redirects]]
   from = "/wp-admin/*"
   to = "/index.html"
@@ -19,15 +21,79 @@
   status = 404
 
 [[redirects]]
+  from = "/wp-includes/*"
+  to = "/index.html"
+  status = 404
+
+[[redirects]]
+  from = "/wp-content/*"
+  to = "/index.html"
+  status = 404
+
+[[redirects]]
   from = "/xmlrpc.php"
   to = "/index.html"
   status = 404
 
 [[redirects]]
+  from = "/wordpress/*"
+  to = "/index.html"
+  status = 404
+
+[[redirects]]
+  from = "/wp/*"
+  to = "/index.html"
+  status = 404
+
+[[redirects]]
+  from = "/vendor/*"
+  to = "/index.html"
+  status = 404
+
+
+# Env files, VCS, cloud credentials. An exact /.env is not enough: scanners also
+# try /.env.staging, /.env.backup, and nested copies like /backend/.env.
+[[redirects]]
   from = "/.env"
   to = "/index.html"
   status = 404
 
+[[redirects]]
+  from = "/.env.*"
+  to = "/index.html"
+  status = 404
+
+[[redirects]]
+  from = "/:a/.env"
+  to = "/index.html"
+  status = 404
+
+[[redirects]]
+  from = "/:a/:b/.env"
+  to = "/index.html"
+  status = 404
+
+[[redirects]]
+  from = "/:a/.env.*"
+  to = "/index.html"
+  status = 404
+
+[[redirects]]
+  from = "/:a/:b/.env.*"
+  to = "/index.html"
+  status = 404
+
+[[redirects]]
+  from = "/.git/*"
+  to = "/index.html"
+  status = 404
+
+[[redirects]]
+  from = "/.aws/*"
+  to = "/index.html"
+  status = 404
+
+# SPA catch-all stays last.
 [[redirects]]
   from = "/*"
   to = "/index.html"

@@ -320,6 +320,15 @@ crosses 860 px because React-Leaflet only reads auto-pan options when constructi
 the popup; this keeps the safe area correct after resize or rotation. The search circle is fitted without
 horizontal map padding on mobile so its perimeter reaches the viewport edges.
 
+## Scanner-probe hardening (2026-09-30, not yet deployed)
+
+`netlify.toml` 404s the usual scanner paths (WordPress, `.env` variants incl.
+nested, `.git`, `.aws`, `/vendor`) above the SPA catch-all so they stop counting
+as Netlify Analytics pageviews; `public/robots.txt` disallows `/api/`. Recipe and
+verification curl loop: [`netlify-bot-probe-hardening.md`](netlify-bot-probe-hardening.md).
+Local `netlify dev` serves these as 200, so verify against the deployed site
+after the next push.
+
 ## Watch after the laptop closes
 
 - The 07:00 UTC cron should log `mode=incremental` and finish in ~15s. Check
